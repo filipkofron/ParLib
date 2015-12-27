@@ -37,15 +37,16 @@ void TCPSocket::TCPSocketWin32Server(const std::string& addr, const std::string&
   int result = getaddrinfo(addr.c_str(), port.c_str(), &_addrHints, &resultAddr);
   if (result != 0)
   {
-    
-    FatalError("getaddrinfo failed with error: %d", result);
+    Error("getaddrinfo failed with error: %d", result);
+    return;
   }
 
   _socket = socket(resultAddr->ai_family, resultAddr->ai_socktype, resultAddr->ai_protocol);
   if (_socket == INVALID_SOCKET)
   {
     freeaddrinfo(resultAddr);
-    FatalError("socket failed with error: %ld", WSAGetLastError());
+    Error("socket failed with error: %ld", WSAGetLastError());
+    return;
   }
 
   // Setup the TCP listening socket
@@ -53,20 +54,70 @@ void TCPSocket::TCPSocketWin32Server(const std::string& addr, const std::string&
   if (result == SOCKET_ERROR) {
     freeaddrinfo(resultAddr);
     closesocket(_socket);
-    FatalError("bind failed with error: %d", WSAGetLastError());
+    _socket = INVALID_SOCKET;
+    Error("bind failed with error: %d", WSAGetLastError());
+    return;
   }
 
   freeaddrinfo(resultAddr);
 
   result = listen(_socket, SOMAXCONN);
   if (result == SOCKET_ERROR) {
-    FatalError("listen failed with error: %d", WSAGetLastError());
     closesocket(_socket);
+    _socket = INVALID_SOCKET;
+    Error("listen failed with error: %d", WSAGetLastError());
+  }
+}
+
+void TCPSocket::TCPSocketWin32Client(const std::string addr, const std::string& port)
+{
+  struct addrinfo* resultAddr;
+  struct addrinfo* ptr;
+
+  _addrHints.ai_family = AF_UNSPEC;
+  _addrHints.ai_socktype = SOCK_STREAM;
+  _addrHints.ai_protocol = IPPROTO_TCP;
+
+  // Resolve the server address and port
+  int result = getaddrinfo(addr.c_str(), port.c_str(), &_addrHints, &resultAddr);
+  if (result != 0)
+  {
+    Error("getaddrinfo failed with error: %d\n", result);
+    return;
+  }
+
+  for (ptr = resultAddr; ptr != nullptr; ptr = ptr->ai_next) {
+
+    // Create a SOCKET for connecting to server
+    _socket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+    if (_socket == INVALID_SOCKET)
+    {
+      Error("socket failed with error: %d", WSAGetLastError());
+    }
+
+    // Connect to server.
+    result = connect(_socket, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
+    if (result == SOCKET_ERROR)
+    {
+      closesocket(_socket);
+      _socket = INVALID_SOCKET;
+      continue;
+    }
+    break;
+  }
+
+  freeaddrinfo(resultAddr);
+
+  if (_socket == INVALID_SOCKET)
+  {
+    Error("Unable to connect to server!\n");
+    return;
   }
 }
 
 void TCPSocket::TCPSocketWin32AcceptedClient(SOCKET socket, const struct sockaddr& acceptedAddr)
 {
+  _client = true;
   _socket = socket;
   _acceptedAddr = acceptedAddr;
 }
@@ -74,8 +125,8 @@ void TCPSocket::TCPSocketWin32AcceptedClient(SOCKET socket, const struct sockadd
 
 void TCPSocket::Init()
 {
+  _socket = INVALID_SOCKET;
 #ifdef _WIN32
-  ZERO_VAR(_socket);
   ZERO_VAR(_acceptedAddr);
   ZERO_VAR(_addrHints);
 #endif
@@ -84,13 +135,22 @@ void TCPSocket::Init()
   _tv.tv_usec = 500000; // 500ms
   _recvTimeout = 30000; // 30s
   _sendTimeout = 30000; // 30s
+  _client = false;
 }
 
-TCPSocket::TCPSocket(const std::string& addr, int port)
+TCPSocket::TCPSocket(const std::string& addr, int port, bool client)
+  : _client(client)
 {
   Init();
 #ifdef _WIN32
-  TCPSocketWin32Server(addr, std::to_string(port));
+  if (_client)
+  {
+    TCPSocketWin32Client(addr, std::to_string(port));
+  }
+  else
+  {
+    TCPSocketWin32Server(addr, std::to_string(port));
+  }
 #endif _WIN32
 }
 
@@ -143,11 +203,22 @@ int TCPSocket::Receive(char* buffer, int length)
   return recv(_socket, buffer, length, 0);
 }
 
+bool TCPSocket::IsOk() const
+{
+  return _socket != INVALID_SOCKET;
+}
+
 TCPSocket::~TCPSocket()
 {
   if (_socket != INVALID_SOCKET)
   {
-    shutdown(_socket, SD_SEND);
+    if (_client)
+    {
+      if (shutdown(_socket, SD_SEND) == SOCKET_ERROR)
+      {
+        Error("Could not shutdown client socket.");
+      }
+    }
     closesocket(_socket);
   }
 }

@@ -35,6 +35,7 @@ private:
   DWORD _recvTimeout;
   DWORD _sendTimeout;
   fd_set _readFDs;
+  bool _client;
 #endif
   /*!
    * Initialize structures, must be called from each constructor upon start.
@@ -44,10 +45,11 @@ private:
   TCPSocket(const TCPSocket& src) { }
 #ifdef _WIN32
   void TCPSocketWin32Server(const std::string& addr, const std::string& port);
+  void TCPSocketWin32Client(const std::string addr, const std::string& port);
   void TCPSocketWin32AcceptedClient(SOCKET socket, const struct sockaddr& acceptedAddr);
 #endif
 public:
-  TCPSocket(const std::string& addr, int port);
+  TCPSocket(const std::string& addr, int port, bool client);
 #ifdef _WIN32
   TCPSocket(SOCKET socket, const struct sockaddr& acceptedAddr);
 #endif
@@ -56,6 +58,8 @@ public:
 
   int Send(char* buffer, int length);
   int Receive(char* buffer, int length);
+
+  bool IsOk() const;
 
   ~TCPSocket();
 };

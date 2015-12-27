@@ -5,7 +5,7 @@
 int main(void)
 {
   OnStart();
-  TCPSocket sock("0.0.0.0", 1234);
+  TCPSocket sock("0.0.0.0", 1234, false);
 
   OnEnd();
   return 0;
