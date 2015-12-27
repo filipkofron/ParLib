@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+#define DEFAULT_PORT 1337
+
 /**
 * Just before the start. Print some info.
 */
