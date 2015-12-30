@@ -1,6 +1,12 @@
 #include "TCPSocket.h"
 #include "Common.h"
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
 #include <cstring>
+
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "ws2_32.lib")
 
 #define ZERO_VAR(variable) \
   do { memset(&variable, 0, sizeof(variable)); } while(false)
@@ -221,4 +227,63 @@ TCPSocket::~TCPSocket()
     }
     closesocket(_socket);
   }
+}
+
+std::vector<std::string> TCPSocket::GetLocalAddresses()
+{
+  /* Variables used by GetIpAddrTable */
+  PMIB_IPADDRTABLE pIPAddrTable;
+  DWORD dwSize = 0;
+  DWORD dwRetVal = 0;
+  IN_ADDR IPAddr;
+  std::vector<std::string> addresses;
+
+  /* Variables used to return error message */
+  LPVOID lpMsgBuf;
+
+  // Before calling AddIPAddress we use GetIpAddrTable to get
+  // an adapter to which we can add the IP.
+  pIPAddrTable = static_cast<MIB_IPADDRTABLE *>(malloc(sizeof(MIB_IPADDRTABLE)));
+
+  if (pIPAddrTable) {
+    // Make an initial call to GetIpAddrTable to get the
+    // necessary size into the dwSize variable
+    if (GetIpAddrTable(pIPAddrTable, &dwSize, 0) ==
+      ERROR_INSUFFICIENT_BUFFER) {
+      free(pIPAddrTable);
+      pIPAddrTable = static_cast<MIB_IPADDRTABLE *>(malloc(dwSize));
+
+    }
+    if (pIPAddrTable == nullptr) {
+      printf("Memory allocation failed for GetIpAddrTable\n");
+      exit(1);
+    }
+  }
+  // Make a second call to GetIpAddrTable to get the
+  // actual data we want
+  if ((dwRetVal = GetIpAddrTable(pIPAddrTable, &dwSize, 0)) != NO_ERROR) {
+    printf("GetIpAddrTable failed with error %d\n", dwRetVal);
+    if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
+      (LPTSTR)& lpMsgBuf, 0, NULL)) {
+      printf("\tError: %s", static_cast<char const*>(lpMsgBuf));
+      LocalFree(lpMsgBuf);
+    }
+    exit(1);
+  }
+
+  const int bufLen = 32;
+  char buffer[bufLen];
+  for (auto i = 0; i < static_cast<int>(pIPAddrTable->dwNumEntries); i++)
+  {
+    IPAddr.S_un.S_addr = static_cast<u_long>(pIPAddrTable->table[i].dwAddr);
+    inet_ntop(AF_INET, &IPAddr, buffer, bufLen);
+    addresses.push_back(buffer);
+  }
+
+  if (pIPAddrTable) {
+    free(pIPAddrTable);
+    pIPAddrTable = nullptr;
+  }
+
+  return addresses;
 }

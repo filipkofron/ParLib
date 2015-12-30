@@ -24,6 +24,12 @@
     <ClInclude Include="NetworkManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ClientConnection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerConnection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TCPSocket.cpp">
@@ -33,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Common.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ServerConnection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

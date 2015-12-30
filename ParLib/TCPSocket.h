@@ -16,6 +16,7 @@
 #include <memory>
 
 #ifdef _WIN32
+#include <vector>
 extern WSADATA GwsaData;
 void InitSockets();
 void DeinitSockets();
@@ -62,4 +63,6 @@ public:
   bool IsOk() const;
 
   ~TCPSocket();
+
+  static std::vector<std::string> GetLocalAddresses();
 };

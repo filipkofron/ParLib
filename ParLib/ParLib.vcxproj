@@ -151,6 +151,7 @@
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="ServerConnection.cpp" />
     <ClCompile Include="TCPSocket.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
