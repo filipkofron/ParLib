@@ -65,4 +65,5 @@ public:
   ~TCPSocket();
 
   static std::vector<std::string> GetLocalAddresses();
+  static std::string GetLocalAddressInSubnet(const std::string& address, int bits);
 };

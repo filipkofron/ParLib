@@ -4,6 +4,6 @@
 class ClientConnection
 {
 private:
-  std::unique_ptr<TCPSocket> _socket;
+  std::shared_ptr<TCPSocket> _socket;
 public:
 };

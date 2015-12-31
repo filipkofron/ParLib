@@ -12,6 +12,7 @@
   do { memset(&variable, 0, sizeof(variable)); } while(false)
 
 #ifdef _WIN32
+#include <sstream>
 WSADATA GwsaData;
 
 void InitSockets()
@@ -80,45 +81,45 @@ void TCPSocket::TCPSocketWin32Client(const std::string addr, const std::string& 
   struct addrinfo* resultAddr;
   struct addrinfo* ptr;
 
-  _addrHints.ai_family = AF_UNSPEC;
-  _addrHints.ai_socktype = SOCK_STREAM;
-  _addrHints.ai_protocol = IPPROTO_TCP;
+_addrHints.ai_family = AF_UNSPEC;
+_addrHints.ai_socktype = SOCK_STREAM;
+_addrHints.ai_protocol = IPPROTO_TCP;
 
-  // Resolve the server address and port
-  int result = getaddrinfo(addr.c_str(), port.c_str(), &_addrHints, &resultAddr);
-  if (result != 0)
-  {
-    Error("getaddrinfo failed with error: %d\n", result);
-    return;
-  }
+// Resolve the server address and port
+int result = getaddrinfo(addr.c_str(), port.c_str(), &_addrHints, &resultAddr);
+if (result != 0)
+{
+  Error("getaddrinfo failed with error: %d\n", result);
+  return;
+}
 
-  for (ptr = resultAddr; ptr != nullptr; ptr = ptr->ai_next) {
+for (ptr = resultAddr; ptr != nullptr; ptr = ptr->ai_next) {
 
-    // Create a SOCKET for connecting to server
-    _socket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-    if (_socket == INVALID_SOCKET)
-    {
-      Error("socket failed with error: %d", WSAGetLastError());
-    }
-
-    // Connect to server.
-    result = connect(_socket, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
-    if (result == SOCKET_ERROR)
-    {
-      closesocket(_socket);
-      _socket = INVALID_SOCKET;
-      continue;
-    }
-    break;
-  }
-
-  freeaddrinfo(resultAddr);
-
+  // Create a SOCKET for connecting to server
+  _socket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
   if (_socket == INVALID_SOCKET)
   {
-    Error("Unable to connect to server!\n");
-    return;
+    Error("socket failed with error: %d", WSAGetLastError());
   }
+
+  // Connect to server.
+  result = connect(_socket, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
+  if (result == SOCKET_ERROR)
+  {
+    closesocket(_socket);
+    _socket = INVALID_SOCKET;
+    continue;
+  }
+  break;
+}
+
+freeaddrinfo(resultAddr);
+
+if (_socket == INVALID_SOCKET)
+{
+  Error("Unable to connect to server!\n");
+  return;
+}
 }
 
 void TCPSocket::TCPSocketWin32AcceptedClient(SOCKET socket, const struct sockaddr& acceptedAddr)
@@ -172,13 +173,17 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
   struct sockaddr acceptedAddr;
   ZERO_VAR(acceptedAddr);
   int acceptedAddrSize = sizeof(acceptedAddr);
-  
+
   FD_ZERO(&_readFDs);
   FD_SET(_socket, &_readFDs);
   int selectResult = select(0, &_readFDs, nullptr, nullptr, &_tv);
   if (selectResult == SOCKET_ERROR)
   {
-    FatalError("Select on server socket failed.");
+    if (!TerminationInProgress)
+    {
+      FatalError("Select on server socket failed, WSAGetLastError: %i.", WSAGetLastError());
+    }
+    return nullptr;
   }
 
   if (FD_ISSET(_socket, &_readFDs))
@@ -186,7 +191,10 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
     SOCKET clientSocket = accept(_socket, &acceptedAddr, &acceptedAddrSize);
     if (clientSocket == INVALID_SOCKET)
     {
-      Error("accept() returned an invalid socket.");
+      if (!TerminationInProgress)
+      {
+        Error("accept() returned an invalid socket.");
+      }
     }
     else
     {
@@ -286,4 +294,78 @@ std::vector<std::string> TCPSocket::GetLocalAddresses()
   }
 
   return addresses;
+}
+
+std::vector<std::string> SplitIPV4Addr(const std::string& addrStr)
+{
+  std::vector<std::string> parts;
+  size_t len = addrStr.size();
+  const char* cstr = addrStr.c_str();
+  parts.push_back(std::string());
+  for (size_t i = 0; i < len; i++)
+  {
+    if (cstr[i] == '.')
+    {
+      parts.push_back(std::string());
+    }
+    else
+    {
+      parts[parts.size() - 1] += cstr[i];
+    }
+  }
+
+  return parts;
+}
+
+union addr_ipv4_t
+{
+  uint32_t address;
+  uint8_t bytes[4];
+};
+
+static uint32_t ParseIPV4Addr(const std::string& addrStr)
+{
+  addr_ipv4_t addr;
+  addr.address = 0;
+  std::vector<std::string> parts = SplitIPV4Addr(addrStr);
+  if (parts.size() != 4)
+    return -1;
+  bool littleEndian = static_cast<void*>(&addr.address) == static_cast<void*>(addr.bytes);
+  for (int i = 0; i < 4; i++)
+  {
+    int endianIdx = littleEndian ? 3 - i : i;
+    if (parts[i] == "*")
+    {
+      addr.bytes[endianIdx] = 0;
+    }
+    else
+    {
+      std::stringstream ss;
+      ss << parts[i];
+      int num = 0;
+      ss >> num;
+      addr.bytes[endianIdx] = num;
+    }
+  }
+  return addr.address;
+}
+
+std::string TCPSocket::GetLocalAddressInSubnet(const std::string& address, int bits)
+{
+  std::vector<std::string> addresses = GetLocalAddresses();
+  uint32_t subnet = ParseIPV4Addr(address);
+  subnet = subnet >> bits;
+  subnet = subnet << bits;
+  for (const auto& addr : addresses)
+  {
+    uint32_t prefix = ParseIPV4Addr(addr);
+    prefix = prefix >> bits;
+    prefix = prefix << bits;
+    if (prefix == subnet)
+    {
+      return addr;
+    }
+  }
+  return "";
+
 }

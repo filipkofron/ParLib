@@ -7,8 +7,10 @@
 class NetworkManager
 {
 private:
-  std::unique_ptr<ServerConnection> _serverConnection;
-  std::unique_ptr<ClientConnection> _clientConnection;
+  std::string _networkId;
+  std::shared_ptr<ServerConnection> _serverConnection;
+  std::vector<std::shared_ptr<ClientConnection> > _clientConnections;
 public:
-  void Init();
+  NetworkManager(const std::string& network, int maskBits);
+  void Terminate();
 };
