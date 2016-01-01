@@ -9,7 +9,9 @@ bool TerminationInProgress = false;
 
 void OnStart()
 {
+#ifdef _WIN32
   InitSockets();
+#endif // _WIN32
 
   std::cout << "ParLib booting up." << std::endl;
 }
@@ -17,7 +19,9 @@ void OnStart()
 void OnEnd()
 {
   TerminationInProgress = true;
+#ifdef _WIN32
   DeinitSockets();
+#endif // _WIN32
 
   std::cout << "Press any key to exit." << std::endl;
   std::cin.get();

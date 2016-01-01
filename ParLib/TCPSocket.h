@@ -1,6 +1,9 @@
 #pragma once
 
 #include <string>
+#include <memory>
+#include <vector>
+#include <memory>
 
 #ifdef _WIN32
 #undef UNICODE
@@ -12,11 +15,12 @@
 #include <ws2tcpip.h>
 
 #pragma comment (lib, "Ws2_32.lib")
-#endif
-#include <memory>
+#else // _WIN32
+#include <netinet/in.h>
+#endif // _WIN32
+
 
 #ifdef _WIN32
-#include <vector>
 extern WSADATA GwsaData;
 void InitSockets();
 void DeinitSockets();
@@ -36,8 +40,15 @@ private:
   DWORD _recvTimeout;
   DWORD _sendTimeout;
   fd_set _readFDs;
+#else // _WIN32
+  int _socket;
+  timeval _tv;
+  unsigned int _recvTimeout;
+  unsigned int _sendTimeout;
+  unsigned int _acceptTimeout;
+  sockaddr_in _acceptedAddr;
+#endif // _WIN32
   bool _client;
-#endif
   /*!
    * Initialize structures, must be called from each constructor upon start.
    */
@@ -48,12 +59,18 @@ private:
   void TCPSocketWin32Server(const std::string& addr, const std::string& port);
   void TCPSocketWin32Client(const std::string addr, const std::string& port);
   void TCPSocketWin32AcceptedClient(SOCKET socket, const struct sockaddr& acceptedAddr);
-#endif
+#else // _WIN32
+  void TCPSocketLinuxServer(const std::string& addr, int port);
+  void TCPSocketLinuxClient(const std::string addr, int port);
+  void TCPSocketLinuxAcceptedClient(int socket, const struct sockaddr_in& acceptedAddr);
+#endif // _WIN32
 public:
   TCPSocket(const std::string& addr, int port, bool client);
 #ifdef _WIN32
   TCPSocket(SOCKET socket, const struct sockaddr& acceptedAddr);
-#endif
+#else // _WIN32
+  TCPSocket(int socket, const struct sockaddr_in& acceptedAddr);
+#endif // _WIN32
 
   std::shared_ptr<TCPSocket> Accept();
 

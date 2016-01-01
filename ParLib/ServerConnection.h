@@ -1,7 +1,9 @@
 #pragma once
-#include "TCPSocket.h"
 #include <vector>
 #include <mutex>
+#include <memory>
+#include <thread>
+#include "TCPSocket.h"
 
 class ServerConnection
 {

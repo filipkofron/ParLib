@@ -1,7 +1,8 @@
 
+#include <iostream>
+#include <cstring>
 #include "TCPSocket.h"
 #include "Common.h"
-#include <iostream>
 #include "NetworkManager.h"
 
 std::shared_ptr<NetworkManager> GNetworkManager;
