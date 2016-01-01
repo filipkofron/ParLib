@@ -1,4 +1,5 @@
 #include <cstring>
+#include <cerrno>
 #include <sstream>
 #include <iostream>
 #include "TCPSocket.h"
@@ -46,6 +47,60 @@ void DeinitSockets()
   WSACleanup();
 }
 #endif
+
+std::vector<std::string> SplitIPV4Addr(const std::string& addrStr)
+{
+  std::vector<std::string> parts;
+  size_t len = addrStr.size();
+  const char* cstr = addrStr.c_str();
+  parts.push_back(std::string());
+  for (size_t i = 0; i < len; i++)
+  {
+    if (cstr[i] == '.')
+    {
+      parts.push_back(std::string());
+    }
+    else
+    {
+      parts[parts.size() - 1] += cstr[i];
+    }
+  }
+
+  return parts;
+}
+
+union addr_ipv4_t
+{
+  uint32_t address;
+  uint8_t bytes[4];
+};
+
+static uint32_t ParseIPV4Addr(const std::string& addrStr)
+{
+  addr_ipv4_t addr;
+  addr.address = 0;
+  std::vector<std::string> parts = SplitIPV4Addr(addrStr);
+  if (parts.size() != 4)
+    return -1;
+  bool littleEndian = static_cast<void*>(&addr.address) == static_cast<void*>(addr.bytes);
+  for (int i = 0; i < 4; i++)
+  {
+    int endianIdx = littleEndian ? 3 - i : i;
+    if (parts[i] == "*")
+    {
+      addr.bytes[endianIdx] = 0;
+    }
+    else
+    {
+      std::stringstream ss;
+      ss << parts[i];
+      int num = 0;
+      ss >> num;
+      addr.bytes[endianIdx] = num;
+    }
+  }
+  return addr.address;
+}
 
 #ifdef _WIN32
 void TCPSocket::TCPSocketWin32Server(const std::string& addr, const std::string& port)
@@ -171,15 +226,6 @@ static int HostnameToIp(const char* hostname, char* ip)
   return 1;
 }
 
-unsigned int InetAddr(char* str)
-{
-    int a, b, c, d;
-    char arr[4];
-    sscanf(str, "%d.%d.%d.%d", &a, &b, &c, &d);
-    arr[0] = a; arr[1] = b; arr[2] = c; arr[3] = d;
-    return *(unsigned int *)arr;
-}
-
 void TCPSocket::TCPSocketLinuxServer(const std::string& addr, int port)
 {
   _socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -204,7 +250,9 @@ void TCPSocket::TCPSocketLinuxServer(const std::string& addr, int port)
   listenAddr.sin_family = AF_INET;
   char ip[100];
   HostnameToIp(addr.c_str(), ip);
-  listenAddr.sin_addr.s_addr = htonl(InetAddr(ip));
+  unsigned int addrHost = ParseIPV4Addr(ip);
+  std::cout << "addrHost: " << addrHost << std::endl;
+  listenAddr.sin_addr.s_addr = htonl(addrHost);
   listenAddr.sin_port = htons(port);
   rc = bind(_socket, (struct sockaddr *)&listenAddr, sizeof(listenAddr));
   if (rc < 0)
@@ -257,13 +305,15 @@ void TCPSocket::TCPSocketLinuxClient(const std::string addr, int port)
   char ip[100];
   HostnameToIp(addr.c_str(), ip);
   std::cout << "hostname: " << addr.c_str() << " ip: " << ip << " port: " << port<<  std::endl;
-  connAddr.sin_addr.s_addr = htonl(InetAddr(ip));
+  connAddr.sin_addr.s_addr = htonl(ParseIPV4Addr(ip));
   connAddr.sin_port = htons(port);
-  if (connect(_socket, (struct sockaddr *) &connAddr , sizeof(connAddr)) < 0)
+  printf("connAddr.sin_addr.s_addr: %X", connAddr.sin_addr.s_addr);
+  rc = connect(_socket, (struct sockaddr *) &connAddr , sizeof(connAddr));
+  if (rc < 0)
   {
     close(_socket);
     _socket = INVALID_SOCKET;
-    Error("connect failed. Error");
+    Error("connect failed. Error: %s", strerror(errno));
     return;
   }
 }
@@ -527,60 +577,6 @@ std::vector<std::string> TCPSocket::GetLocalAddresses()
 #endif // _WIN32
 
   return addresses;
-}
-
-std::vector<std::string> SplitIPV4Addr(const std::string& addrStr)
-{
-  std::vector<std::string> parts;
-  size_t len = addrStr.size();
-  const char* cstr = addrStr.c_str();
-  parts.push_back(std::string());
-  for (size_t i = 0; i < len; i++)
-  {
-    if (cstr[i] == '.')
-    {
-      parts.push_back(std::string());
-    }
-    else
-    {
-      parts[parts.size() - 1] += cstr[i];
-    }
-  }
-
-  return parts;
-}
-
-union addr_ipv4_t
-{
-  uint32_t address;
-  uint8_t bytes[4];
-};
-
-static uint32_t ParseIPV4Addr(const std::string& addrStr)
-{
-  addr_ipv4_t addr;
-  addr.address = 0;
-  std::vector<std::string> parts = SplitIPV4Addr(addrStr);
-  if (parts.size() != 4)
-    return -1;
-  bool littleEndian = static_cast<void*>(&addr.address) == static_cast<void*>(addr.bytes);
-  for (int i = 0; i < 4; i++)
-  {
-    int endianIdx = littleEndian ? 3 - i : i;
-    if (parts[i] == "*")
-    {
-      addr.bytes[endianIdx] = 0;
-    }
-    else
-    {
-      std::stringstream ss;
-      ss << parts[i];
-      int num = 0;
-      ss >> num;
-      addr.bytes[endianIdx] = num;
-    }
-  }
-  return addr.address;
 }
 
 std::string TCPSocket::GetLocalAddressInSubnet(const std::string& address, int bits)
