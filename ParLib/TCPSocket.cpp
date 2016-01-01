@@ -146,9 +146,9 @@ void TCPSocket::Init()
 }
 
 TCPSocket::TCPSocket(const std::string& addr, int port, bool client)
-  : _client(client)
 {
   Init();
+  _client = client;
 #ifdef _WIN32
   if (_client)
   {
@@ -207,7 +207,7 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
   return nullptr; // select timed out or an accept failure
 }
 
-int TCPSocket::Send(char* buffer, int length)
+int TCPSocket::Send(const char* buffer, int length)
 {
   return send(_socket, buffer, length, 0);
 }

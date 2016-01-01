@@ -57,7 +57,7 @@ public:
 
   std::shared_ptr<TCPSocket> Accept();
 
-  int Send(char* buffer, int length);
+  int Send(const char* buffer, int length);
   int Receive(char* buffer, int length);
 
   bool IsOk() const;
