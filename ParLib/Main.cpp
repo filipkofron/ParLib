@@ -7,7 +7,7 @@
 
 std::shared_ptr<NetworkManager> GNetworkManager;
 
-int main(void)
+int main(int argc, const char* args[])
 {
   OnStart();
 

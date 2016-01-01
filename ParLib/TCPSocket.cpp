@@ -134,7 +134,7 @@ void TCPSocket::TCPSocketWin32Server(const std::string& addr, const std::string&
     freeaddrinfo(resultAddr);
     closesocket(_socket);
     _socket = INVALID_SOCKET;
-    Error("bind failed with error: %d", WSAGetLa#ifdef _WIN32stError());
+    Error("bind failed with error: %d", WSAGetLastError());
     return;
   }
 
