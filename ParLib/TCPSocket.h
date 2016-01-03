@@ -17,6 +17,7 @@
 #pragma comment (lib, "Ws2_32.lib")
 #else // _WIN32
 #include <netinet/in.h>
+#include <sys/ioctl.h>
 #endif // _WIN32
 
 

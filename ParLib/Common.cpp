@@ -3,6 +3,10 @@
 #include <iostream>
 #include <sstream>
 
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
 #include "Common.h"
 #include "TCPSocket.h"
 
@@ -116,4 +120,17 @@ void FatalError(const char* format, ...)
   va_end(args);
   OnEnd();
   exit(1);
+}
+
+void sleepMs(unsigned long milis)
+{
+#ifdef _WIN32
+  Sleep(milis);
+#else // _WIN32
+  if (milis > 1000)
+  {
+    sleep(milis / 1000);
+  }
+  usleep((milis % 1000) * 1000);
+#endif // _WIN32
 }

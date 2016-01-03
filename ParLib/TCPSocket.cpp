@@ -123,7 +123,7 @@ void TCPSocket::TCPSocketWin32Client(const std::string addr, const std::string& 
     //set the socket in non-blocking
     unsigned long iMode = 1;
     int iResult = ioctlsocket(_socket, FIONBIO, &iMode);
-    if (iResult != NO_ERROR)
+    if (iResult != 0)
     {
       Error("ioctlsocket failed with error: %ld\n", iResult);
     }
@@ -140,7 +140,7 @@ void TCPSocket::TCPSocketWin32Client(const std::string addr, const std::string& 
     // restart the socket mode
     iMode = 0;
     iResult = ioctlsocket(_socket, FIONBIO, &iMode);
-    if (iResult != NO_ERROR)
+    if (iResult != 0)
     {
       printf("ioctlsocket failed with error: %ld\n", iResult);
     }
@@ -292,7 +292,7 @@ void TCPSocket::TCPSocketLinuxClient(const std::string addr, int port)
   //set the socket in non-blocking
   unsigned long iMode = 1;
   int iResult = ioctlsocket(_socket, FIONBIO, &iMode);
-  if (iResult != NO_ERROR)
+  if (iResult != 0)
   {
     Error("ioctlsocket failed with error: %ld\n", iResult);
   }

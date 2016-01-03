@@ -65,7 +65,7 @@ void ServerConnection::AcceptLoop(ServerConnection* instance)
     {
       char b = 66;
       int tries = 10000;
-      Sleep(200);
+      SLEEP(200);
       while (tries--)
       {
         int rc = clientSocket->Send(&b, 1);
@@ -74,7 +74,7 @@ void ServerConnection::AcceptLoop(ServerConnection* instance)
           break;
         }
         Error("Sending error: '%s'\n", strerror(errno));
-        Sleep(100);
+        SLEEP(100);
       }
         
       instance->_connectedClients.push_back(clientSocket);
