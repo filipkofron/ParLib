@@ -54,8 +54,19 @@ void NetworkManager::DiscoverAll()
   int maxPort = defaultPort + 8;
   AddrIterator addrIterator(_network, _maskBits);
   std::vector<std::shared_ptr<TCPSocket>  > foundSockets;
+#ifndef _WIN32
+  const int maxTries = 16;
+#endif // _WIN32
+  int tries = 0;
   while (true)
   {
+#ifndef _WIN32
+    if (tries > maxTries)
+    {
+      break;
+    }
+#endif // _WIN32
+    tries++;
     std::string next = addrIterator.NextAddr();
     if (!next.size())
     {

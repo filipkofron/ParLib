@@ -1,6 +1,7 @@
 #include "TCPSocket.h"
 #include "ClientConnection.h"
 #include "MessageFactory.h"
+#include <iostream>
 
 void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool client)
 {
@@ -12,6 +13,7 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
     return;
   }
   conn->_socket->ResetTimeouts();
+  std::cout << "Connected with <" << conn->GetNetworkId() << ">" << std::endl;
   GNetworkManager->AddOrDiscardClient(conn);
   while (conn->_socket->IsOk())
   {
