@@ -42,7 +42,6 @@ private:
 #else // _WIN32
   int _socket;
   timeval _tvPlatform;
-  int _tvPlatform;
   unsigned int _acceptTimeout;
   sockaddr_in _acceptedAddr;
 #endif // _WIN32
