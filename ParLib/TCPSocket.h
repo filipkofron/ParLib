@@ -37,18 +37,16 @@ private:
   SOCKET _socket;
   struct sockaddr _acceptedAddr;
   struct addrinfo _addrHints;
-  TIMEVAL _tv;
-  DWORD _recvTimeout;
-  DWORD _sendTimeout;
+  int _tvPlatform;
   fd_set _readFDs;
 #else // _WIN32
   int _socket;
-  timeval _tv;
-  unsigned int _recvTimeout;
-  unsigned int _sendTimeout;
+  timeval _tvPlatform;
+  int _tvPlatform;
   unsigned int _acceptTimeout;
   sockaddr_in _acceptedAddr;
 #endif // _WIN32
+  timeval _tv;
   bool _client;
   /*!
    * Initialize structures, must be called from each constructor upon start.

@@ -171,8 +171,8 @@ void TCPSocket::TCPSocketWin32Client(const std::string addr, const std::string& 
     return;
   }
 
-  setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_recvTimeout), sizeof(_recvTimeout));
-  setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_sendTimeout), sizeof(_sendTimeout));
+  setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_tvPlatform), sizeof(_tvPlatform));
+  setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_tvPlatform), sizeof(_tvPlatform));
 }
 
 void TCPSocket::TCPSocketWin32AcceptedClient(SOCKET socket, const struct sockaddr& acceptedAddr)
@@ -243,7 +243,7 @@ void TCPSocket::TCPSocketLinuxServer(const std::string& addr, int port)
     FatalError("bind() failed!");
   }
 
-  rc = setsockopt (_socket, SOL_SOCKET, SO_RCVTIMEO, (char *) &_tv, sizeof(_tv));
+  rc = setsockopt (_socket, SOL_SOCKET, SO_RCVTIMEO, (char *) &_tvPlatform, sizeof(_tvPlatform));
   if(rc < 0)
   {
     close(_socket);
@@ -336,8 +336,8 @@ void TCPSocket::TCPSocketLinuxClient(const std::string addr, int port)
     return;
   }
 
-  setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_recvTimeout), sizeof(_recvTimeout));
-  setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_sendTimeout), sizeof(_sendTimeout));
+  setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_tvPlatform), sizeof(_tvPlatform));
+  setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_tvPlatform), sizeof(_tvPlatform));
 }
 
 void TCPSocket::TCPSocketLinuxAcceptedClient(int socket, const struct sockaddr_in& acceptedAddr)
@@ -434,12 +434,12 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
     }
     else
     {
-      int rc = setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_recvTimeout), sizeof(_recvTimeout));
+      int rc = setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_tvPlatform), sizeof(_tvPlatform));
       if (rc == SOCKET_ERROR)
       {
         Error("Error setting timeout on accepted socket!");
       }
-      rc = setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_sendTimeout), sizeof(_sendTimeout));
+      rc = setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_tvPlatform), sizeof(_tvPlatform));
       if (rc == SOCKET_ERROR)
       {
         Error("Error setting timeout on accepted socket!");
@@ -452,8 +452,8 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
   int clientSocket = accept(_socket, (sockaddr *) &acceptedAddr, &acceptedAddrSize);
   if (clientSocket >= 0)
   {
-          setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_recvTimeout), sizeof(_recvTimeout));
-      setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_sendTimeout), sizeof(_sendTimeout));
+          setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_tvPlatform), sizeof(_tvPlatform));
+      setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_tvPlatform), sizeof(_tvPlatform));
     return std::make_shared<TCPSocket>(clientSocket, acceptedAddr);
   }
 #endif // _WIN32
@@ -508,20 +508,26 @@ void TCPSocket::ResetTimeouts()
 
 void TCPSocket::SetTimeout(uint32_t timeOut)
 {
-  _recvTimeout = timeOut;
-  _sendTimeout = timeOut;
+#ifdef _WIN32
+  _tvPlatform = timeOut;
+#else // _WIN32
+  _tvPlatform = { 0 };
+  _tvPlatform.tv_usec = (timeOut % 1000) * 1000;
+  _tvPlatform.tv_sec = timeOut / 1000;
+#endif // _WIN32
+
   _tv = { 0 };
   _tv.tv_usec = (timeOut % 1000) * 1000;
   _tv.tv_sec = timeOut / 1000;
   if (_socket != INVALID_SOCKET)
   {
-	int rc = setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_tv), sizeof(_tv));
+	int rc = setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_tvPlatform), sizeof(_tvPlatform));
 	int err = errno;
     if (rc < 0)
     {
       printf("Error setting timeout errorno '%i'  strerr: '%s'\n", err, strerror(errno));
     }
-    rc = setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_tv), sizeof(_tv));
+    rc = setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_tvPlatform), sizeof(_tvPlatform));
     err = errno;
     if (rc < 0)
     {
