@@ -3,9 +3,11 @@
 #include <cstring>
 #define MSG_DEST_LEN 32
 #include <string>
-#include "Common.h"
 
 class TCPSocket;
+class Message;
+
+#include "Common.h"
 
 #define MESSAGE_TYPE_INITIAL 0
 #define MESSAGE_TYPE_ELECTION 1
@@ -62,4 +64,7 @@ public:
   virtual ~Message();
   static std::shared_ptr<Message> Receive(TCPSocket& socket);
   bool Send(TCPSocket& socket);;
+  int32_t GetType() const { return _header ? _header->type : -1; }
+  char* GetData() const { return _content ? _content->GetData() : NULL; }
+  uint64_t GetLength() const { return _header ? _header->length : 0; }
 };

@@ -52,12 +52,6 @@ void ServerConnection::StopServer()
   }
 }
 
-void ServerConnection::DisconnectClients()
-{
-  std::lock_guard<std::mutex> guard(_lock);
-  _connectedClients.clear();
-}
-
 void ServerConnection::AcceptLoop(ServerConnection* instance)
 {
   auto listenSocket = instance->_listenSocket;
@@ -70,8 +64,7 @@ void ServerConnection::AcceptLoop(ServerConnection* instance)
       char b = 66;
       clientSocket->Send(&b, 1);
       std::shared_ptr<ClientConnection> conn = std::make_shared<ClientConnection>(clientSocket);
-      conn->StartReceiverThread();
-      instance->_connectedClients.push_back(conn);;
+      conn->StartReceiverThread(conn, false);
     }
   }
 }

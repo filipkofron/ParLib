@@ -5,13 +5,10 @@
 
 void NetworkManager::AddFoundServers(const std::vector<std::shared_ptr<TCPSocket> >& sockets)
 {
-  for (std::shared_ptr<TCPSocket> socket : sockets)
+  for (auto& socket : sockets)
   {
-    std::shared_ptr<Message> msg = Message::Receive(*socket);
-    if (msg)
-    {
-      std::cout << "win!" << std::endl;
-    }
+    auto client = std::make_shared<ClientConnection>(socket);
+    client->StartReceiverThread(client, true);
   }
 }
 
@@ -29,6 +26,16 @@ NetworkManager::NetworkManager(const std::string& network, int maskBits)
   {
     FatalError("Cannot start accepting clients on the NetworkManager's server.");
   }
+}
+
+void NetworkManager::CleanFinishingClients()
+{
+  std::lock_guard<std::mutex> guard(_lock);
+  for (auto client : _finishingClients)
+  {
+    client->CleanUp();
+  }
+  _finishingClients.clear();
 }
 
 bool NetworkManager::CheckForServer(TCPSocket* socket)
@@ -72,10 +79,41 @@ void NetworkManager::DiscoverAll()
   AddFoundServers(foundSockets);
 }
 
+void NetworkManager::DisconnectClients()
+{
+  CleanFinishingClients();
+  std::lock_guard<std::mutex> guard(_lock);
+  _clientConnections.clear();
+}
+
 void NetworkManager::Terminate()
 {
+  CleanFinishingClients();
   _serverConnection->StopServer();
+
+  std::lock_guard<std::mutex> guard(_lock);
   _clientConnections.clear();
+}
+
+void NetworkManager::RegisterFinishingClient(std::shared_ptr<ClientConnection> client)
+{
+  CleanFinishingClients();
+  std::lock_guard<std::mutex> guard(_lock);
+  _finishingClients.push_back(client);
+}
+
+void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
+{
+  CleanFinishingClients();
+}
+
+void NetworkManager::AddOrDiscardClient(const std::shared_ptr<ClientConnection>& client)
+{
+  std::lock_guard<std::mutex> guard(_lock);
+  if (_clientConnections.find(client->GetNetworkId()) != _clientConnections.end())
+  {
+    _clientConnections[client->GetNetworkId()] = client;
+  }
 }
 
 const std::string& NetworkManager::GetNetworkId()

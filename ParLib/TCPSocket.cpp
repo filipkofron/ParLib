@@ -466,7 +466,7 @@ int TCPSocket::Send(const char* buffer, int length)
   while (sent != length)
   {
     int currSent = send(_socket, buffer, length - sent, 0);
-    if (currSent >= 0)
+    if (currSent >= 0 && IsOk())
     {
       sent += currSent;
     }
@@ -484,7 +484,7 @@ int TCPSocket::Receive(char* buffer, int length)
   while (recvd != length)
   {
     int currRecvd = recv(_socket, buffer, length - recvd, 0);
-    if (currRecvd >= 0)
+    if (currRecvd >= 0 && IsOk())
     {
       recvd += currRecvd;
     }
@@ -518,18 +518,23 @@ void TCPSocket::SetTimeout(uint32_t timeOut)
 	int err = errno;
     if (rc < 0)
     {
-      printf("Error setting timeout errorno '%i' socket: '%i' strerr: '%s'\n", err, _socket, strerror(errno));
+      printf("Error setting timeout errorno '%i'  strerr: '%s'\n", err, strerror(errno));
     }
     rc = setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_tv), sizeof(_tv));
     err = errno;
     if (rc < 0)
     {
-      printf("Error setting timeout errorno '%i' socket: '%i' strerr: '%s'", err, _socket, strerror(errno));
+      printf("Error setting timeout errorno '%i'  strerr: '%s'", err, strerror(errno));
     }
   }
 }
 
 TCPSocket::~TCPSocket()
+{
+  Close();
+}
+
+void TCPSocket::Close()
 {
   if (_socket != INVALID_SOCKET)
   {
@@ -548,6 +553,7 @@ TCPSocket::~TCPSocket()
     close(_socket);
 #endif // _WIN32
   }
+  _socket = INVALID_SOCKET;
 }
 
 std::vector<std::string> TCPSocket::GetLocalAddresses()
