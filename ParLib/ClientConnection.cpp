@@ -6,10 +6,12 @@
 void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool client)
 {
   conn->_socket->SetTimeout(30000);
+  std::cout << "Handshake started." << std::endl;
   if (!Handshake(conn, client))
   {
     // TODO: Disconnect client.
     GNetworkManager->RegisterFinishingClient(conn);
+    Error("Handshake failed!");
     return;
   }
   conn->_socket->ResetTimeouts();
