@@ -511,7 +511,8 @@ void TCPSocket::SetTimeout(uint32_t timeOut)
   _recvTimeout = timeOut;
   _sendTimeout = timeOut;
   _tv = { 0 };
-  _tv.tv_usec = timeOut * 1000;
+  _tv.tv_usec = (timeOut % 1000) * 1000;
+  _tv.tv_sec = timeOut / 1000;
   if (_socket != INVALID_SOCKET)
   {
 	int rc = setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_tv), sizeof(_tv));
