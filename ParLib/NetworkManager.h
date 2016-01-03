@@ -14,21 +14,29 @@ private:
   std::string _network;
   int _maskBits;
   std::mutex _lock;
+  std::mutex _finishingLock;
   std::string _networkId;
   std::string _leaderId;
+  std::thread _keepAliveThread;
+  bool _keepAliveLoop;
   std::shared_ptr<ServerConnection> _serverConnection;
   std::vector<std::shared_ptr<ClientConnection> > _finishingClients;
   std::unordered_map<std::string, std::shared_ptr<ClientConnection> > _clientConnections;
   void AddFoundServers(const std::vector<std::shared_ptr<TCPSocket> >& sockets);
   bool CheckForServer(TCPSocket* socket);
   void CleanFinishingClients();
+  void OnKeepAliveMessage(const std::shared_ptr<ReceivedMessage>& msg);
 public:
   NetworkManager(const std::string& network, int maskBits);
+  std::shared_ptr<ClientConnection> FindClient(const std::string networkId);
   void DiscoverAll();
+  void KeepAliveLoop();
   void DisconnectClients();
   void Terminate();
   void RegisterFinishingClient(std::shared_ptr<ClientConnection> client);
   void OnMessage(const std::shared_ptr<ReceivedMessage>& msg);
   void AddOrDiscardClient(const std::shared_ptr<ClientConnection>& client);
+  void DiscardClient(const std::string& clientId);
   const std::string& GetNetworkId();
+  int GetClientCount() const { return _clientConnections.size(); }
 };

@@ -2,6 +2,7 @@
 #include "Common.h"
 #include "AddrIterator.h"
 #include <iostream>
+#include "MessageFactory.h"
 
 void NetworkManager::AddFoundServers(const std::vector<std::shared_ptr<TCPSocket> >& sockets)
 {
@@ -13,7 +14,7 @@ void NetworkManager::AddFoundServers(const std::vector<std::shared_ptr<TCPSocket
 }
 
 NetworkManager::NetworkManager(const std::string& network, int maskBits)
-  : _network(network), _maskBits(maskBits)
+  : _network(network), _maskBits(maskBits), _keepAliveLoop(true), _keepAliveThread(&NetworkManager::KeepAliveLoop, this)
 {
   std::string localAddr = TCPSocket::GetLocalAddressInSubnet(network, maskBits);
   _serverConnection = std::make_shared<ServerConnection>();
@@ -28,14 +29,35 @@ NetworkManager::NetworkManager(const std::string& network, int maskBits)
   }
 }
 
-void NetworkManager::CleanFinishingClients()
+std::shared_ptr<ClientConnection> NetworkManager::FindClient(const std::string networkId)
 {
   std::lock_guard<std::mutex> guard(_lock);
+  std::shared_ptr<ClientConnection> conn(nullptr);
+  if (_clientConnections.find(networkId) != _clientConnections.end())
+  {
+    conn = _clientConnections[networkId];
+  }
+  return conn;
+}
+
+void NetworkManager::CleanFinishingClients()
+{
+  std::lock_guard<std::mutex> guard(_finishingLock);
   for (auto client : _finishingClients)
   {
     client->CleanUp();
   }
   _finishingClients.clear();
+}
+
+void NetworkManager::OnKeepAliveMessage(const std::shared_ptr<ReceivedMessage>& msg)
+{
+  auto conn = FindClient(msg->GetSenderId());
+
+  if (!conn)
+    return;
+
+  conn->SendKeepAliveResp();
 }
 
 bool NetworkManager::CheckForServer(TCPSocket* socket)
@@ -74,7 +96,7 @@ void NetworkManager::DiscoverAll()
     }
     for (int i = defaultPort; i < maxPort; i++)
     {
-      std::cout << "Trying " << next << ":" << i << std::endl;
+      // std::cout << "Trying " << next << ":" << i << std::endl;
       TCPSocket* socket = new TCPSocket(next, i, true, 5);
       if (CheckForServer(socket))
       {
@@ -90,6 +112,19 @@ void NetworkManager::DiscoverAll()
   AddFoundServers(foundSockets);
 }
 
+void NetworkManager::KeepAliveLoop()
+{
+  while (_keepAliveLoop)
+  {
+    sleepMs(1000);
+    std::lock_guard<std::mutex> guard(_lock);
+    for (auto& client : _clientConnections)
+    {
+      client.second->SendKeepAlive();
+    }
+  }
+}
+
 void NetworkManager::DisconnectClients()
 {
   CleanFinishingClients();
@@ -99,32 +134,45 @@ void NetworkManager::DisconnectClients()
 
 void NetworkManager::Terminate()
 {
+  _keepAliveLoop = false;
   CleanFinishingClients();
   _serverConnection->StopServer();
 
   std::lock_guard<std::mutex> guard(_lock);
   _clientConnections.clear();
+  _keepAliveThread.join();
 }
 
 void NetworkManager::RegisterFinishingClient(std::shared_ptr<ClientConnection> client)
 {
   CleanFinishingClients();
-  std::lock_guard<std::mutex> guard(_lock);
+  std::lock_guard<std::mutex> guard(_finishingLock);
   _finishingClients.push_back(client);
 }
 
 void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
-  CleanFinishingClients();
+  std::cout << "Received message type: " << msg->GetMessageA()->GetType() << std::endl;
+  switch (msg->GetMessageA()->GetType())
+  {
+  case MESSAGE_TYPE_KEEP_ALIVE:
+    OnKeepAliveMessage(msg);
+  }
 }
 
 void NetworkManager::AddOrDiscardClient(const std::shared_ptr<ClientConnection>& client)
 {
   std::lock_guard<std::mutex> guard(_lock);
-  if (_clientConnections.find(client->GetNetworkId()) != _clientConnections.end())
+  if (_clientConnections.find(client->GetNetworkId()) == _clientConnections.end())
   {
     _clientConnections[client->GetNetworkId()] = client;
   }
+}
+
+void NetworkManager::DiscardClient(const std::string& clientId)
+{
+  std::lock_guard<std::mutex> guard(_lock);
+  _clientConnections.erase(clientId);
 }
 
 const std::string& NetworkManager::GetNetworkId()

@@ -14,6 +14,12 @@ int main(int argc, const char* args[])
 
   GNetworkManager = std::make_shared<NetworkManager>("192.168.1.5", 8);
   GNetworkManager->DiscoverAll();
+  sleepMs(1000);
+  while (GNetworkManager->GetClientCount() < 4)
+  {
+    sleepMs(1000);
+    std::cout << "CONNECTED CLIENTS: " << GNetworkManager->GetClientCount() << std::endl;
+  }
 
   std::cout << "Press any key to test the server." << std::endl;
   std::cin.get();

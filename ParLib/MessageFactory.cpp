@@ -14,10 +14,20 @@ std::shared_ptr<Message> MessageFactory::CreateElectionMessage(const std::string
 std::shared_ptr<Message> MessageFactory::CreateElectedMessage(const std::string& myId)
 {
 }
-
+*/
 std::shared_ptr<Message> MessageFactory::CreateKeepAliveMessage()
 {
+  Message* msg = new Message(MESSAGE_TYPE_KEEP_ALIVE, "", 0);
+  return std::shared_ptr<Message>(msg);
 }
+
+std::shared_ptr<Message> MessageFactory::CreateKeepAliveMessageResp()
+{
+  Message* msg = new Message(MESSAGE_TYPE_KEEP_ALIVE_RESP, "", 0);
+  return std::shared_ptr<Message>(msg);
+}
+
+/*
 
 std::shared_ptr<Message> MessageFactory::CreateDataMessage(const uint8_t* data)
 {

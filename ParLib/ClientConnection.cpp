@@ -15,6 +15,7 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
     return;
   }
   conn->_socket->ResetTimeouts();
+  conn->_socket->SetTimeout(10000);
   std::cout << "Connected with <" << conn->GetNetworkId() << ">" << std::endl;
   GNetworkManager->AddOrDiscardClient(conn);
   while (conn->_socket->IsOk())
@@ -96,6 +97,20 @@ void ClientConnection::CleanUp()
     _receiverThread = nullptr;
   }
   _socket = nullptr;
+  if (_networkId.size() > 0)
+  {
+    GNetworkManager->DiscardClient(_networkId);
+  }
+}
+
+void ClientConnection::SendKeepAlive()
+{
+  MessageFactory::CreateKeepAliveMessage()->Send(*_socket);
+}
+
+void ClientConnection::SendKeepAliveResp()
+{
+  MessageFactory::CreateKeepAliveMessageResp()->Send(*_socket);
 }
 
 ClientConnection::~ClientConnection()

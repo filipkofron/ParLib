@@ -12,6 +12,8 @@
 
 bool TerminationInProgress = false;
 
+static std::mutex GCommonLock;
+
 std::vector<std::string> SplitIPV4Addr(const std::string& addrStr)
 {
   std::vector<std::string> parts;
@@ -88,6 +90,7 @@ void OnEnd()
 
 void Info(const char* format, ...)
 {
+  std::lock_guard<std::mutex> guard(GCommonLock);
   size_t maxLen = strlen(format) + 1024;
   va_list args;
   va_start(args, format);
@@ -102,6 +105,7 @@ void Info(const char* format, ...)
 
 void Error(const char* format, ...)
 {
+  std::lock_guard<std::mutex> guard(GCommonLock);
   size_t maxLen = strlen(format) + 1024;
   va_list args;
   va_start(args, format);

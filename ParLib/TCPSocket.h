@@ -22,6 +22,7 @@
 
 
 #ifdef _WIN32
+#include <mutex>
 extern WSADATA GwsaData;
 void InitSockets();
 void DeinitSockets();
@@ -47,6 +48,9 @@ private:
 #endif // _WIN32
   timeval _tv;
   bool _client;
+  bool _error;
+  std::mutex _recvLock;
+  std::mutex _sendLock;
   /*!
    * Initialize structures, must be called from each constructor upon start.
    */

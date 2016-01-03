@@ -16,6 +16,8 @@ public:
   ClientConnection(const std::shared_ptr<TCPSocket>& socket);
   ~ClientConnection();
   void CleanUp();
+  void SendKeepAlive();
+  void SendKeepAliveResp();
   static void StartReceiverThread(std::shared_ptr<ClientConnection> conn, bool client);
   const std::string& GetNetworkId();
 };

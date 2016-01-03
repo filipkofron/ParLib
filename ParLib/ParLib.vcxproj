@@ -159,7 +159,6 @@
     <ClCompile Include="Message.cpp" />
     <ClCompile Include="MessageFactory.cpp" />
     <ClCompile Include="NetworkManager.cpp" />
-    <ClCompile Include="Ping.cpp" />
     <ClCompile Include="ServerConnection.cpp" />
     <ClCompile Include="TCPSocket.cpp" />
   </ItemGroup>

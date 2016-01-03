@@ -167,7 +167,7 @@ void TCPSocket::TCPSocketWin32Client(const std::string addr, const std::string& 
 
   if (_socket == INVALID_SOCKET)
   {
-    Error("Unable to connect to server!\n");
+    // unable to connect
     return;
   }
 
@@ -350,6 +350,7 @@ void TCPSocket::TCPSocketLinuxAcceptedClient(int socket, const struct sockaddr_i
 
 void TCPSocket::Init()
 {
+  _error = false;
   ZERO_VAR(_acceptedAddr);
 #ifdef _WIN32
   ZERO_VAR(_addrHints);
@@ -462,17 +463,22 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
 
 int TCPSocket::Send(const char* buffer, int length)
 {
+  std::lock_guard<std::mutex> guard(_sendLock);
   int sent = 0;
   while (sent != length)
   {
     int currSent = send(_socket, buffer, length - sent, 0);
-    if (currSent >= 0 && IsOk())
+    if (currSent > 0)
     {
       sent += currSent;
     }
     else
     {
-      return -1;
+      if (currSent < 0 || !IsOk())
+      {
+        _error = true;
+        return -1;
+      }
     }
   }
   return sent;
@@ -480,17 +486,22 @@ int TCPSocket::Send(const char* buffer, int length)
 
 int TCPSocket::Receive(char* buffer, int length)
 {
+  std::lock_guard<std::mutex> guard(_recvLock);
   int recvd = 0;
   while (recvd != length)
   {
     int currRecvd = recv(_socket, buffer, length - recvd, 0);
-    if (currRecvd >= 0 && IsOk())
+    if (currRecvd > 0)
     {
       recvd += currRecvd;
     }
     else
     {
-      return -1;
+      if (currRecvd <= 0 || !IsOk())
+      {
+        _error = true;
+        return -1;
+      }
     }
   }
   return recvd;
@@ -498,7 +509,16 @@ int TCPSocket::Receive(char* buffer, int length)
 
 bool TCPSocket::IsOk() const
 {
-  return _socket != INVALID_SOCKET;
+  bool ok = !_error && _socket != INVALID_SOCKET;
+  if (ok)
+  {
+    int error = 0;
+    socklen_t len = sizeof(error);
+    int retVal = getsockopt(_socket, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&error), &len);
+    ok = retVal == 0;
+  }
+  
+  return ok;
 }
 
 void TCPSocket::ResetTimeouts()
@@ -539,6 +559,8 @@ void TCPSocket::SetTimeout(uint32_t timeOut)
 TCPSocket::~TCPSocket()
 {
   Close();
+  std::lock_guard<std::mutex> guard(_recvLock);
+  std::lock_guard<std::mutex> guard2(_sendLock);
 }
 
 void TCPSocket::Close()
