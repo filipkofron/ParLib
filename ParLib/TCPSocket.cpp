@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <linux/if_link.h>
+#include <sys/ioctl.h>
 #endif // _WIN32
 
 #define ZERO_VAR(variable) \
@@ -291,12 +292,11 @@ void TCPSocket::TCPSocketLinuxClient(const std::string addr, int port)
   
   //set the socket in non-blocking
   unsigned long iMode = 1;
-  int iResult = ioctlsocket(_socket, FIONBIO, &iMode);
+  int iResult = ioctl(_socket, FIONBIO, &iMode);
   if (iResult != 0)
   {
     Error("ioctlsocket failed with error: %ld\n", iResult);
   }
-  unfinished tho
   rc = connect(_socket, (struct sockaddr *) &connAddr , sizeof(connAddr));
   if (rc < 0)
   {
@@ -305,6 +305,37 @@ void TCPSocket::TCPSocketLinuxClient(const std::string addr, int port)
     Error("connect failed. Error: %s", strerror(errno));
     return;
   }
+
+  if (rc == 0)
+  {
+    close(_socket);
+    _socket = INVALID_SOCKET;
+    return;
+  }
+
+  // restart the socket mode
+  iMode = 0;
+  iResult = ioctl(_socket, FIONBIO, &iMode);
+  if (iResult != 0)
+  {
+    printf("ioctlsocket failed with error: %d\n", iResult);
+  }
+
+  fd_set Write, Err;
+  FD_ZERO(&Write);
+  FD_ZERO(&Err);
+  FD_SET(_socket, &Write);
+  FD_SET(_socket, &Err);
+
+  // check if the socket is ready
+  select(0, NULL, &Write, &Err, &_tv);
+  if (!FD_ISSET(_socket, &Write))
+  {
+    close(_socket);
+    _socket = INVALID_SOCKET;
+    return;
+  }
+
   setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_recvTimeout), sizeof(_recvTimeout));
   setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_sendTimeout), sizeof(_sendTimeout));
 }

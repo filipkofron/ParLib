@@ -17,7 +17,7 @@ NetworkManager::NetworkManager(const std::string& network, int maskBits)
   {
     FatalError("Cannot start accepting clients on the NetworkManager's server.");
   }
-  SLEEP(1000);
+  sleepMs(1000);
 }
 
 void NetworkManager::DiscoverAll()

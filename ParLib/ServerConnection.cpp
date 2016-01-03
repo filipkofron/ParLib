@@ -1,6 +1,10 @@
 #include "ServerConnection.h"
 #include "Common.h"
 
+#include <cstdlib>
+#include <cerrno>
+#include <cstring>
+
 bool ServerConnection::StartServer()
 {
   if (_listenThread || !_listenSocket->IsOk())
@@ -65,7 +69,7 @@ void ServerConnection::AcceptLoop(ServerConnection* instance)
     {
       char b = 66;
       int tries = 10000;
-      SLEEP(200);
+      sleepMs(200);
       while (tries--)
       {
         int rc = clientSocket->Send(&b, 1);
@@ -74,7 +78,7 @@ void ServerConnection::AcceptLoop(ServerConnection* instance)
           break;
         }
         Error("Sending error: '%s'\n", strerror(errno));
-        SLEEP(100);
+        sleepMs(100);
       }
         
       instance->_connectedClients.push_back(clientSocket);
