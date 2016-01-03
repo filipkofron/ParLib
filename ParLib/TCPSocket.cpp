@@ -48,60 +48,6 @@ void DeinitSockets()
 }
 #endif
 
-std::vector<std::string> SplitIPV4Addr(const std::string& addrStr)
-{
-  std::vector<std::string> parts;
-  size_t len = addrStr.size();
-  const char* cstr = addrStr.c_str();
-  parts.push_back(std::string());
-  for (size_t i = 0; i < len; i++)
-  {
-    if (cstr[i] == '.')
-    {
-      parts.push_back(std::string());
-    }
-    else
-    {
-      parts[parts.size() - 1] += cstr[i];
-    }
-  }
-
-  return parts;
-}
-
-union addr_ipv4_t
-{
-  uint32_t address;
-  uint8_t bytes[4];
-};
-
-static uint32_t ParseIPV4Addr(const std::string& addrStr)
-{
-  addr_ipv4_t addr;
-  addr.address = 0;
-  std::vector<std::string> parts = SplitIPV4Addr(addrStr);
-  if (parts.size() != 4)
-    return -1;
-  bool littleEndian = static_cast<void*>(&addr.address) == static_cast<void*>(addr.bytes);
-  for (int i = 0; i < 4; i++)
-  {
-    int endianIdx = littleEndian ? 3 - i : i;
-    if (parts[i] == "*")
-    {
-      addr.bytes[endianIdx] = 0;
-    }
-    else
-    {
-      std::stringstream ss;
-      ss << parts[i];
-      int num = 0;
-      ss >> num;
-      addr.bytes[endianIdx] = num;
-    }
-  }
-  return addr.address;
-}
-
 #ifdef _WIN32
 void TCPSocket::TCPSocketWin32Server(const std::string& addr, const std::string& port)
 {
@@ -140,7 +86,7 @@ void TCPSocket::TCPSocketWin32Server(const std::string& addr, const std::string&
 
   freeaddrinfo(resultAddr);
 
-  result = listen(_socket, SOMAXCONN);
+  result = listen(_socket, 16);
   if (result == SOCKET_ERROR) {
     closesocket(_socket);
     _socket = INVALID_SOCKET;
@@ -165,33 +111,67 @@ void TCPSocket::TCPSocketWin32Client(const std::string addr, const std::string& 
     return;
   }
 
-  for (ptr = resultAddr; ptr != nullptr; ptr = ptr->ai_next) {
+  for (ptr = resultAddr; ptr != nullptr; ptr = ptr->ai_next)
+  {
+    // Create a SOCKET for connecting to server
+    _socket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+    if (_socket == INVALID_SOCKET)
+    {
+      Error("socket failed with error: %d", WSAGetLastError());
+    }
 
-  // Create a SOCKET for connecting to server
-  _socket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+    //set the socket in non-blocking
+    unsigned long iMode = 1;
+    int iResult = ioctlsocket(_socket, FIONBIO, &iMode);
+    if (iResult != NO_ERROR)
+    {
+      Error("ioctlsocket failed with error: %ld\n", iResult);
+    }
+
+    // Connect to server.
+    result = connect(_socket, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
+    if (result == 0)
+    {
+      closesocket(_socket);
+      _socket = INVALID_SOCKET;
+      continue;
+    }
+
+    // restart the socket mode
+    iMode = 0;
+    iResult = ioctlsocket(_socket, FIONBIO, &iMode);
+    if (iResult != NO_ERROR)
+    {
+      printf("ioctlsocket failed with error: %ld\n", iResult);
+    }
+
+    fd_set Write, Err;
+    FD_ZERO(&Write);
+    FD_ZERO(&Err);
+    FD_SET(_socket, &Write);
+    FD_SET(_socket, &Err);
+
+    // check if the socket is ready
+    select(0, NULL, &Write, &Err, &_tv);
+    if (!FD_ISSET(_socket, &Write))
+    {
+      closesocket(_socket);
+      _socket = INVALID_SOCKET;
+      continue;
+    }
+    break;
+  }
+
+  freeaddrinfo(resultAddr);
+
   if (_socket == INVALID_SOCKET)
   {
-    Error("socket failed with error: %d", WSAGetLastError());
+    Error("Unable to connect to server!\n");
+    return;
   }
 
-  // Connect to server.
-  result = connect(_socket, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
-  if (result == SOCKET_ERROR)
-  {
-    closesocket(_socket);
-    _socket = INVALID_SOCKET;
-    continue;
-  }
-  break;
-}
-
-freeaddrinfo(resultAddr);
-
-if (_socket == INVALID_SOCKET)
-{
-  Error("Unable to connect to server!\n");
-  return;
-}
+  setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_recvTimeout), sizeof(_recvTimeout));
+  setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_sendTimeout), sizeof(_sendTimeout));
 }
 
 void TCPSocket::TCPSocketWin32AcceptedClient(SOCKET socket, const struct sockaddr& acceptedAddr)
@@ -308,6 +288,15 @@ void TCPSocket::TCPSocketLinuxClient(const std::string addr, int port)
   connAddr.sin_addr.s_addr = htonl(ParseIPV4Addr(ip));
   connAddr.sin_port = htons(port);
   printf("connAddr.sin_addr.s_addr: %X", connAddr.sin_addr.s_addr);
+  
+  //set the socket in non-blocking
+  unsigned long iMode = 1;
+  int iResult = ioctlsocket(_socket, FIONBIO, &iMode);
+  if (iResult != NO_ERROR)
+  {
+    Error("ioctlsocket failed with error: %ld\n", iResult);
+  }
+  unfinished tho
   rc = connect(_socket, (struct sockaddr *) &connAddr , sizeof(connAddr));
   if (rc < 0)
   {
@@ -316,6 +305,8 @@ void TCPSocket::TCPSocketLinuxClient(const std::string addr, int port)
     Error("connect failed. Error: %s", strerror(errno));
     return;
   }
+  setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_recvTimeout), sizeof(_recvTimeout));
+  setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_sendTimeout), sizeof(_sendTimeout));
 }
 
 void TCPSocket::TCPSocketLinuxAcceptedClient(int socket, const struct sockaddr_in& acceptedAddr)
@@ -335,19 +326,17 @@ void TCPSocket::Init()
 #else // _WIn32
 #endif // _WIn32
   _socket = INVALID_SOCKET;
-  _tv = { 0 };
-  _tv.tv_usec = 500000; // 500ms
-  _recvTimeout = 30000; // 30s
-  _sendTimeout = 30000; // 30s
+  ResetTimeouts();
 #ifndef _WIN32
   _acceptTimeout = 500; // 500ms
 #endif // !_WIN32
   _client = false;
 }
 
-TCPSocket::TCPSocket(const std::string& addr, int port, bool client)
+TCPSocket::TCPSocket(const std::string& addr, int port, bool client, int timeout)
 {
   Init();
+  SetTimeout(timeout);
   _client = client;
 
   if (_client)
@@ -388,7 +377,7 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
 #endif // _WIN32
   ZERO_VAR(acceptedAddr);
 #ifdef _WIN32
-  FD_ZERO(&_readFDs);
+ /* FD_ZERO(&_readFDs);
   FD_SET(_socket, &_readFDs);
   int selectResult = select(0, &_readFDs, nullptr, nullptr, &_tv);
   if (selectResult == SOCKET_ERROR)
@@ -401,7 +390,7 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
   }
 
   if (FD_ISSET(_socket, &_readFDs))
-  {
+  {*/
     SOCKET clientSocket = accept(_socket, &acceptedAddr, &acceptedAddrSize);
     if (clientSocket == INVALID_SOCKET)
     {
@@ -417,7 +406,7 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
 
       return std::make_shared<TCPSocket>(clientSocket, acceptedAddr);
     }
-  }
+  /*}*/
 #else // _WIN32
   int clientSocket = accept(_socket, (sockaddr *) &acceptedAddr, &acceptedAddrSize);
   if (clientSocket >= 0)
@@ -443,6 +432,24 @@ int TCPSocket::Receive(char* buffer, int length)
 bool TCPSocket::IsOk() const
 {
   return _socket != INVALID_SOCKET;
+}
+
+void TCPSocket::ResetTimeouts()
+{
+  SetTimeout(3000);
+}
+
+void TCPSocket::SetTimeout(uint32_t timeOut)
+{
+  _recvTimeout = timeOut;
+  _sendTimeout = timeOut;
+  _tv = { 0 };
+  _tv.tv_usec = timeOut * 1000;
+  if (_socket != INVALID_SOCKET)
+  {
+    setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_recvTimeout), sizeof(_recvTimeout));
+    setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_sendTimeout), sizeof(_sendTimeout));
+  }
 }
 
 TCPSocket::~TCPSocket()
@@ -596,5 +603,5 @@ std::string TCPSocket::GetLocalAddressInSubnet(const std::string& address, int b
     }
   }
   return "";
-
 }
+

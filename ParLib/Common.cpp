@@ -1,11 +1,66 @@
 #include <cstring>
 #include <cstdarg>
 #include <iostream>
+#include <sstream>
 
 #include "Common.h"
 #include "TCPSocket.h"
 
 bool TerminationInProgress = false;
+
+std::vector<std::string> SplitIPV4Addr(const std::string& addrStr)
+{
+  std::vector<std::string> parts;
+  size_t len = addrStr.size();
+  const char* cstr = addrStr.c_str();
+  parts.push_back(std::string());
+  for (size_t i = 0; i < len; i++)
+  {
+    if (cstr[i] == '.')
+    {
+      parts.push_back(std::string());
+    }
+    else
+    {
+      parts[parts.size() - 1] += cstr[i];
+    }
+  }
+
+  return parts;
+}
+
+union addr_ipv4_t
+{
+  uint32_t address;
+  uint8_t bytes[4];
+};
+
+uint32_t ParseIPV4Addr(const std::string& addrStr)
+{
+  addr_ipv4_t addr;
+  addr.address = 0;
+  std::vector<std::string> parts = SplitIPV4Addr(addrStr);
+  if (parts.size() != 4)
+    return -1;
+  bool littleEndian = static_cast<void*>(&addr.address) == static_cast<void*>(addr.bytes);
+  for (int i = 0; i < 4; i++)
+  {
+    int endianIdx = littleEndian ? 3 - i : i;
+    if (parts[i] == "*")
+    {
+      addr.bytes[endianIdx] = 0;
+    }
+    else
+    {
+      std::stringstream ss;
+      ss << parts[i];
+      int num = 0;
+      ss >> num;
+      addr.bytes[endianIdx] = num;
+    }
+  }
+  return addr.address;
+}
 
 void OnStart()
 {

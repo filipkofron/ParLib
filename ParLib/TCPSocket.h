@@ -65,7 +65,7 @@ private:
   void TCPSocketLinuxAcceptedClient(int socket, const struct sockaddr_in& acceptedAddr);
 #endif // _WIN32
 public:
-  TCPSocket(const std::string& addr, int port, bool client);
+  TCPSocket(const std::string& addr, int port, bool client, int timeout = 500);
 #ifdef _WIN32
   TCPSocket(SOCKET socket, const struct sockaddr& acceptedAddr);
 #else // _WIN32
@@ -78,6 +78,9 @@ public:
   int Receive(char* buffer, int length);
 
   bool IsOk() const;
+
+  void ResetTimeouts();
+  void SetTimeout(uint32_t timeOut);
 
   ~TCPSocket();
 

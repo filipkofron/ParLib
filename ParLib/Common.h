@@ -4,6 +4,7 @@
 #include <cstdlib>
 
 #define DEFAULT_PORT 1337
+#include <vector>
 
 extern bool TerminationInProgress;
 
@@ -35,3 +36,5 @@ void Error(const char* format, ...);
  */
 void FatalError(const char* format, ...);
 
+std::vector<std::string> SplitIPV4Addr(const std::string& addrStr);
+uint32_t ParseIPV4Addr(const std::string& addrStr);

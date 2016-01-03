@@ -63,6 +63,20 @@ void ServerConnection::AcceptLoop(ServerConnection* instance)
     std::lock_guard<std::mutex> guard(instance->_lock);
     if (clientSocket)
     {
+      char b = 66;
+      int tries = 10000;
+      Sleep(200);
+      while (tries--)
+      {
+        int rc = clientSocket->Send(&b, 1);
+        if (rc == 1)
+        {
+          break;
+        }
+        Error("Sending error: '%s'\n", strerror(errno));
+        Sleep(100);
+      }
+        
       instance->_connectedClients.push_back(clientSocket);
     }
   }
