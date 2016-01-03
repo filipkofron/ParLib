@@ -68,20 +68,10 @@ void ServerConnection::AcceptLoop(ServerConnection* instance)
     if (clientSocket)
     {
       char b = 66;
-      int tries = 10000;
-      sleepMs(200);
-      while (tries--)
-      {
-        int rc = clientSocket->Send(&b, 1);
-        if (rc == 1)
-        {
-          break;
-        }
-        Error("Sending error: '%s'\n", strerror(errno));
-        sleepMs(100);
-      }
-        
-      instance->_connectedClients.push_back(clientSocket);
+      clientSocket->Send(&b, 1);
+      std::shared_ptr<ClientConnection> conn = std::make_shared<ClientConnection>(clientSocket);
+      conn->StartReceiverThread();
+      instance->_connectedClients.push_back(conn);;
     }
   }
 }

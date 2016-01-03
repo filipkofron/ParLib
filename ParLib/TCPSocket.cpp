@@ -395,6 +395,8 @@ TCPSocket::TCPSocket(int socket, const struct sockaddr_in& acceptedAddr)
 #endif // _WIN32
 {
   Init();
+  _socket = socket;
+  _acceptedAddr = acceptedAddr;
 }
 
 std::shared_ptr<TCPSocket> TCPSocket::Accept()
@@ -408,7 +410,7 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
 #endif // _WIN32
   ZERO_VAR(acceptedAddr);
 #ifdef _WIN32
- /* FD_ZERO(&_readFDs);
+  FD_ZERO(&_readFDs);
   FD_SET(_socket, &_readFDs);
   int selectResult = select(0, &_readFDs, nullptr, nullptr, &_tv);
   if (selectResult == SOCKET_ERROR)
@@ -421,7 +423,7 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
   }
 
   if (FD_ISSET(_socket, &_readFDs))
-  {*/
+  {
     SOCKET clientSocket = accept(_socket, &acceptedAddr, &acceptedAddrSize);
     if (clientSocket == INVALID_SOCKET)
     {
@@ -432,12 +434,20 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
     }
     else
     {
-      setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_recvTimeout), sizeof(_recvTimeout));
-      setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_sendTimeout), sizeof(_sendTimeout));
+      int rc = setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_recvTimeout), sizeof(_recvTimeout));
+      if (rc == SOCKET_ERROR)
+      {
+        Error("Error setting timeout on accepted socket!");
+      }
+      rc = setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_sendTimeout), sizeof(_sendTimeout));
+      if (rc == SOCKET_ERROR)
+      {
+        Error("Error setting timeout on accepted socket!");
+      }
 
       return std::make_shared<TCPSocket>(clientSocket, acceptedAddr);
     }
-  /*}*/
+  }
 #else // _WIN32
   int clientSocket = accept(_socket, (sockaddr *) &acceptedAddr, &acceptedAddrSize);
   if (clientSocket >= 0)
@@ -452,12 +462,38 @@ std::shared_ptr<TCPSocket> TCPSocket::Accept()
 
 int TCPSocket::Send(const char* buffer, int length)
 {
-  return send(_socket, buffer, length, 0);
+  int sent = 0;
+  while (sent != length)
+  {
+    int currSent = send(_socket, buffer, length - sent, 0);
+    if (currSent >= 0)
+    {
+      sent += currSent;
+    }
+    else
+    {
+      return -1;
+    }
+  }
+  return sent;
 }
 
 int TCPSocket::Receive(char* buffer, int length)
 {
-  return recv(_socket, buffer, length, 0);
+  int recvd = 0;
+  while (recvd != length)
+  {
+    int currRecvd = recv(_socket, buffer, length - recvd, 0);
+    if (currRecvd >= 0)
+    {
+      recvd += currRecvd;
+    }
+    else
+    {
+      return -1;
+    }
+  }
+  return recvd;
 }
 
 bool TCPSocket::IsOk() const

@@ -1,12 +1,12 @@
 #include <string>
 #include "MessageFactory.h"
-/*
+
 std::shared_ptr<Message> MessageFactory::CreateInitialMessage(const std::string& myId)
 {
-  Message* msg = new Message
+  Message* msg = new Message(MESSAGE_TYPE_INITIAL, myId.c_str(), myId.size());
   return std::shared_ptr<Message>(msg);
 }
-
+/*
 std::shared_ptr<Message> MessageFactory::CreateElectionMessage(const std::string& myId)
 {
 }

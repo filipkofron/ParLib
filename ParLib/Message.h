@@ -32,31 +32,34 @@ private:
   };
   struct Content
   {
-    uint8_t *data;
-    Content(const uint8_t* inData, uint64_t length)
+    char *data;
+    Content(const char* inData, uint64_t length)
     {
-      data = new uint8_t[length];
+      data = new char[length];
       memcpy(data, inData, length);
     }
     Content(uint64_t length)
     {
-      data = new uint8_t[length];
+      data = new char[length];
       memset(data, 0, length);
     }
     ~Content()
     {
       delete[] data;
     }
-    uint8_t* GetData() const
+    char* GetData() const
     {
       return data;
     }
   };
 #pragma pack(pop)
-  Header *_header;
-  Content *_content;
+  Header* _header;
+  Content* _content;
 
 public:
+  Message(Header* header, Content* content);
+  Message(int32_t type, const char* data, uint64_t length);
+  virtual ~Message();
   static std::shared_ptr<Message> Receive(TCPSocket& socket);
-  bool Send(TCPSocket& socket);
+  bool Send(TCPSocket& socket);;
 };

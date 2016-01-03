@@ -4,12 +4,13 @@
 #include <memory>
 #include <thread>
 #include "TCPSocket.h"
+#include "ClientConnection.h"
 
 class ServerConnection
 {
 private:
   std::shared_ptr<TCPSocket> _listenSocket;
-  std::vector<std::shared_ptr<TCPSocket> > _connectedClients;
+  std::vector<std::shared_ptr<ClientConnection> > _connectedClients;
   std::mutex _lock;
   std::shared_ptr<std::thread> _listenThread;
   int _port;

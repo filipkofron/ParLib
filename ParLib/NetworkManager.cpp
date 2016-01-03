@@ -3,6 +3,18 @@
 #include "AddrIterator.h"
 #include <iostream>
 
+void NetworkManager::AddFoundServers(const std::vector<std::shared_ptr<TCPSocket> >& sockets)
+{
+  for (std::shared_ptr<TCPSocket> socket : sockets)
+  {
+    std::shared_ptr<Message> msg = Message::Receive(*socket);
+    if (msg)
+    {
+      std::cout << "win!" << std::endl;
+    }
+  }
+}
+
 NetworkManager::NetworkManager(const std::string& network, int maskBits)
   : _network(network), _maskBits(maskBits)
 {
@@ -17,16 +29,24 @@ NetworkManager::NetworkManager(const std::string& network, int maskBits)
   {
     FatalError("Cannot start accepting clients on the NetworkManager's server.");
   }
-  sleepMs(1000);
+}
+
+bool NetworkManager::CheckForServer(TCPSocket* socket)
+{
+  char b = 0;
+  socket->SetTimeout(100);
+  int rec = socket->Receive(&b, 1);
+  return socket->IsOk() && rec == 1 && b == 66;
 }
 
 void NetworkManager::DiscoverAll()
 {
+  sleepMs(1000);
   std::cout << "Discovering all nodes on the network " << _network << ". " << (1 << _maskBits) << " hosts will be scanned." << std::endl;
   int defaultPort = DEFAULT_PORT;
   int maxPort = defaultPort + 8;
   AddrIterator addrIterator(_network, _maskBits);
-  std::vector<TCPSocket*> foundSockets;
+  std::vector<std::shared_ptr<TCPSocket>  > foundSockets;
   while (true)
   {
     std::string next = addrIterator.NextAddr();
@@ -36,28 +56,12 @@ void NetworkManager::DiscoverAll()
     }
     for (int i = defaultPort; i < maxPort; i++)
     {
-      if (i == 1337 && next == "192.168.1.161")
-      {
-        std::cout << "test" << std::endl;
-      }
-      else
-      {
-        continue;
-      }
       std::cout << "Trying " << next << ":" << i << std::endl;
-      TCPSocket* socket = new TCPSocket(next, i, true, 500);
-      char b = 0;
-      if (socket->IsOk())
-      {
-        std::cout << "test" << std::endl;
-      }
-      socket->SetTimeout(5000);
-      int rec = socket->Receive(&b, 1);
-      Error("Receiving error: '%s'\n", strerror(errno));
-      if (socket->IsOk() && rec == 1 && b == 66)
+      TCPSocket* socket = new TCPSocket(next, i, true, 5);
+      if (CheckForServer(socket))
       {
         socket->ResetTimeouts();
-        foundSockets.push_back(socket);
+        foundSockets.push_back(std::shared_ptr<TCPSocket> (socket));
       }
       else
       {
@@ -65,10 +69,20 @@ void NetworkManager::DiscoverAll()
       }
     }
   }
+  AddFoundServers(foundSockets);
 }
 
 void NetworkManager::Terminate()
 {
   _serverConnection->StopServer();
   _clientConnections.clear();
+}
+
+const std::string& NetworkManager::GetNetworkId()
+{
+  if (!_networkId.size())
+  {
+    FatalError("Network id unknown!");
+  }
+  return _networkId;
 }

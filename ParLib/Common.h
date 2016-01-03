@@ -5,8 +5,12 @@
 
 #define DEFAULT_PORT 1337
 #include <vector>
+#include <memory>
+#include "NetworkManager.h"
 
 extern bool TerminationInProgress;
+
+extern std::shared_ptr<NetworkManager> GNetworkManager;
 
 /**
 * Just before the start. Print some info.
