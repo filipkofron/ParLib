@@ -21,6 +21,7 @@ int main(int argc, const char* args[])
   std::cout << "Press any key to terminate the server." << std::endl;
   std::cin.get();
   GNetworkManager->Terminate();
+  GNetworkManager = nullptr;
 
   OnEnd();
   return 0;

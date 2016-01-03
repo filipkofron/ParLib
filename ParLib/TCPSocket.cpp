@@ -285,10 +285,10 @@ void TCPSocket::TCPSocketLinuxClient(const std::string addr, int port)
   connAddr.sin_family = AF_INET;
   char ip[100];
   HostnameToIp(addr.c_str(), ip);
-  std::cout << "hostname: " << addr.c_str() << " ip: " << ip << " port: " << port<<  std::endl;
+  // std::cout << "hostname: " << addr.c_str() << " ip: " << ip << " port: " << port<<  std::endl;
   connAddr.sin_addr.s_addr = htonl(ParseIPV4Addr(ip));
   connAddr.sin_port = htons(port);
-  printf("connAddr.sin_addr.s_addr: %X", connAddr.sin_addr.s_addr);
+  // printf("connAddr.sin_addr.s_addr: %X", connAddr.sin_addr.s_addr);
   
   //set the socket in non-blocking
   unsigned long iMode = 1;
@@ -298,13 +298,13 @@ void TCPSocket::TCPSocketLinuxClient(const std::string addr, int port)
     Error("ioctlsocket failed with error: %ld\n", iResult);
   }
   rc = connect(_socket, (struct sockaddr *) &connAddr , sizeof(connAddr));
-  if (rc < 0)
+  /*if (rc < 0)
   {
     close(_socket);
     _socket = INVALID_SOCKET;
     Error("connect failed. Error: %s", strerror(errno));
     return;
-  }
+  }*/
 
   if (rc == 0)
   {
@@ -514,8 +514,18 @@ void TCPSocket::SetTimeout(uint32_t timeOut)
   _tv.tv_usec = timeOut * 1000;
   if (_socket != INVALID_SOCKET)
   {
-    setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_recvTimeout), sizeof(_recvTimeout));
-    setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_sendTimeout), sizeof(_sendTimeout));
+	int rc = setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&_tv), sizeof(_tv));
+	int err = errno;
+    if (rc < 0)
+    {
+      printf("Error setting timeout errorno '%i' socket: '%i' strerr: '%s'\n", err, _socket, strerror(errno));
+    }
+    rc = setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char *>(&_tv), sizeof(_tv));
+    err = errno;
+    if (rc < 0)
+    {
+      printf("Error setting timeout errorno '%i' socket: '%i' strerr: '%s'", err, _socket, strerror(errno));
+    }
   }
 }
 

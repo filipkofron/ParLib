@@ -34,7 +34,7 @@ NetworkManager::NetworkManager(const std::string& network, int maskBits)
 bool NetworkManager::CheckForServer(TCPSocket* socket)
 {
   char b = 0;
-  socket->SetTimeout(100);
+  socket->SetTimeout(5);
   int rec = socket->Receive(&b, 1);
   return socket->IsOk() && rec == 1 && b == 66;
 }

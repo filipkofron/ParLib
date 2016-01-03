@@ -92,6 +92,7 @@ void Info(const char* format, ...)
   va_list args;
   va_start(args, format);
   char* buffer = new char[maxLen + 1];
+  memset(buffer, 0, maxLen + 1);
   vsnprintf(buffer, maxLen, format, args);
   va_end(args);
   buffer[maxLen] = '\0';
@@ -105,6 +106,7 @@ void Error(const char* format, ...)
   va_list args;
   va_start(args, format);
   char* buffer = new char[maxLen + 1];
+  memset(buffer, 0, maxLen + 1);
   vsnprintf(buffer, maxLen, format, args);
   va_end(args);
   buffer[maxLen] = '\0';
