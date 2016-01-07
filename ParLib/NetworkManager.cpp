@@ -155,8 +155,8 @@ void NetworkManager::RegisterFinishingClient(std::shared_ptr<ClientConnection> c
 void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
   CleanFinishingClients();
-  std::cout << "Received message type: " << msg->GetMessageA()->GetType() << std::endl;
-  switch (msg->GetMessageA()->GetType())
+  std::cout << "Received message type: " << msg->GetMessage()->GetType() << std::endl;
+  switch (msg->GetMessage()->GetType())
   {
   case MESSAGE_TYPE_KEEP_ALIVE:
     OnKeepAliveMessage(msg);
