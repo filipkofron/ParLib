@@ -16,8 +16,14 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
   }
   conn->_socket->ResetTimeouts();
   conn->_socket->SetTimeout(10000);
-  std::cout << "Connected with <" << conn->GetNetworkId() << ">" << std::endl;
-  GNetworkManager->AddOrDiscardClient(conn);
+  if (!GNetworkManager->AddOrDiscardClient(conn, client))
+  {
+    std::cout << "NOT connected with <" << conn->GetNetworkId() << "> client: " << client << std::endl;
+    GNetworkManager->RegisterFinishingClient(conn);
+    return;
+  }
+  std::cout << "Connected with <" << conn->GetNetworkId() << "> client: " << client << std::endl;
+   
   while (conn->_socket->IsOk())
   {
     auto msg = Message::Receive(*conn->_socket);
@@ -26,6 +32,7 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
       GNetworkManager->OnMessage(std::make_shared<ReceivedMessage>(conn->GetNetworkId(), msg));
     }
   }
+  std::cout << "Socket failure with " << conn->GetNetworkId() << " client: " << client << std::endl;
   // TODO: Disconnect client.
   GNetworkManager->RegisterFinishingClient(conn);
 }
@@ -96,11 +103,11 @@ void ClientConnection::CleanUp()
     _receiverThread->join();
     _receiverThread = nullptr;
   }
-  _socket = nullptr;
   if (_networkId.size() > 0)
   {
-    GNetworkManager->DiscardClient(_networkId);
+    GNetworkManager->DiscardClient(this);
   }
+  _socket = nullptr;
 }
 
 void ClientConnection::SendKeepAlive()

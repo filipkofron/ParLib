@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <memory>
+#include <thread>
 
 #ifdef _WIN32
 #undef UNICODE
@@ -86,6 +87,8 @@ public:
 
   ~TCPSocket();
   void Close();
+  static int _socketIdCounter;
+  int _socketId;
   static std::vector<std::string> GetLocalAddresses();
   static std::string GetLocalAddressInSubnet(const std::string& address, int bits);
 };

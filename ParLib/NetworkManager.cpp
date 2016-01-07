@@ -117,9 +117,11 @@ void NetworkManager::KeepAliveLoop()
   while (_keepAliveLoop)
   {
     sleepMs(1000);
+   // std::cout << "Sending keep alive messages!" << std::endl;
     std::lock_guard<std::mutex> guard(_lock);
     for (auto& client : _clientConnections)
     {
+      std::cout << "Sending keep alive message to: " << client.first << std::endl;
       client.second->SendKeepAlive();
     }
   }
@@ -138,9 +140,9 @@ void NetworkManager::Terminate()
   CleanFinishingClients();
   _serverConnection->StopServer();
 
+  _keepAliveThread.join();
   std::lock_guard<std::mutex> guard(_lock);
   _clientConnections.clear();
-  _keepAliveThread.join();
 }
 
 void NetworkManager::RegisterFinishingClient(std::shared_ptr<ClientConnection> client)
@@ -152,6 +154,7 @@ void NetworkManager::RegisterFinishingClient(std::shared_ptr<ClientConnection> c
 
 void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
+  CleanFinishingClients();
   std::cout << "Received message type: " << msg->GetMessageA()->GetType() << std::endl;
   switch (msg->GetMessageA()->GetType())
   {
@@ -160,19 +163,32 @@ void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
   }
 }
 
-void NetworkManager::AddOrDiscardClient(const std::shared_ptr<ClientConnection>& client)
+bool NetworkManager::AddOrDiscardClient(const std::shared_ptr<ClientConnection>& client, bool isClient)
 {
+  if (client->GetNetworkId() == GetNetworkId())
+    return false;
+
   std::lock_guard<std::mutex> guard(_lock);
   if (_clientConnections.find(client->GetNetworkId()) == _clientConnections.end())
   {
     _clientConnections[client->GetNetworkId()] = client;
+    return true;
   }
+  if ((client->GetNetworkId() < GetNetworkId()) == isClient)
+  {
+    _clientConnections[client->GetNetworkId()] = client;
+    return true;
+  }
+  return false;
 }
 
-void NetworkManager::DiscardClient(const std::string& clientId)
+void NetworkManager::DiscardClient(ClientConnection* client)
 {
   std::lock_guard<std::mutex> guard(_lock);
-  _clientConnections.erase(clientId);
+  if (_clientConnections.find(client->GetNetworkId()) == _clientConnections.end())
+    return;
+  if (_clientConnections[client->GetNetworkId()].get() == client)
+    _clientConnections.erase(client->GetNetworkId());
 }
 
 const std::string& NetworkManager::GetNetworkId()

@@ -35,8 +35,8 @@ public:
   void Terminate();
   void RegisterFinishingClient(std::shared_ptr<ClientConnection> client);
   void OnMessage(const std::shared_ptr<ReceivedMessage>& msg);
-  void AddOrDiscardClient(const std::shared_ptr<ClientConnection>& client);
-  void DiscardClient(const std::string& clientId);
+  bool AddOrDiscardClient(const std::shared_ptr<ClientConnection>& client, bool isClient);
+  void DiscardClient(ClientConnection* client);
   const std::string& GetNetworkId();
   int GetClientCount() const { return _clientConnections.size(); }
 };

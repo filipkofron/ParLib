@@ -12,6 +12,8 @@ extern bool TerminationInProgress;
 
 extern std::shared_ptr<NetworkManager> GNetworkManager;
 
+extern int DEBUGVerbose;
+
 /**
 * Just before the start. Print some info.
 */

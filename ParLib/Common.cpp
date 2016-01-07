@@ -14,6 +14,8 @@ bool TerminationInProgress = false;
 
 static std::mutex GCommonLock;
 
+int DEBUGVerbose = 0;
+
 std::vector<std::string> SplitIPV4Addr(const std::string& addrStr)
 {
   std::vector<std::string> parts;

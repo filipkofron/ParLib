@@ -49,6 +49,8 @@ void DeinitSockets()
 }
 #endif
 
+int TCPSocket::_socketIdCounter = 0;
+
 #ifdef _WIN32
 void TCPSocket::TCPSocketWin32Server(const std::string& addr, const std::string& port)
 {
@@ -363,6 +365,9 @@ void TCPSocket::Init()
   _acceptTimeout = 500; // 500ms
 #endif // !_WIN32
   _client = false;
+
+  std::lock_guard<std::mutex> lock(_sendLock);
+  _socketId = _socketIdCounter++;
 }
 
 TCPSocket::TCPSocket(const std::string& addr, int port, bool client, int timeout)
@@ -468,7 +473,7 @@ int TCPSocket::Send(const char* buffer, int length)
   while (sent != length)
   {
     int currSent = send(_socket, buffer, length - sent, 0);
-    if (currSent > 0)
+    if (currSent >= 0)
     {
       sent += currSent;
     }
@@ -477,10 +482,12 @@ int TCPSocket::Send(const char* buffer, int length)
       if (currSent < 0 || !IsOk())
       {
         _error = true;
+        if (DEBUGVerbose) std::cout << "socket " << _socketId << " sent: " << -1 << std::endl;
         return -1;
       }
     }
   }
+  if (DEBUGVerbose) std::cout << "socket " << _socketId << " sent: " << sent << std::endl;
   return sent;
 }
 
@@ -491,19 +498,21 @@ int TCPSocket::Receive(char* buffer, int length)
   while (recvd != length)
   {
     int currRecvd = recv(_socket, buffer, length - recvd, 0);
-    if (currRecvd > 0)
+    if (currRecvd >= 0)
     {
       recvd += currRecvd;
     }
     else
     {
-      if (currRecvd <= 0 || !IsOk())
+      if (currRecvd < 0 || !IsOk())
       {
         _error = true;
+        if (DEBUGVerbose) std::cout << "socket " << _socketId << " received: " << -1 << std::endl;
         return -1;
       }
     }
   }
+  if (DEBUGVerbose) std::cout << "socket " << _socketId << " received: " << recvd << std::endl;
   return recvd;
 }
 
