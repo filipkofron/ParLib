@@ -242,7 +242,7 @@ void TCPSocket::TCPSocketLinuxServer(const std::string& addr, int port)
   {
     close(_socket);
     _socket = INVALID_SOCKET;
-    FatalError("bind() failed!");
+    Error("bind() failed!");
   }
 
   rc = setsockopt (_socket, SOL_SOCKET, SO_RCVTIMEO, (char *) &_tvPlatform, sizeof(_tvPlatform));
@@ -250,7 +250,7 @@ void TCPSocket::TCPSocketLinuxServer(const std::string& addr, int port)
   {
     close(_socket);
     _socket = INVALID_SOCKET;
-    FatalError("setsockopt() failed!");
+    Error("setsockopt() failed!");
   }
 
   rc = listen(_socket, 16);
@@ -258,7 +258,7 @@ void TCPSocket::TCPSocketLinuxServer(const std::string& addr, int port)
   {
     close(_socket);
     _socket = INVALID_SOCKET;
-    FatalError("listen() failed!");
+    Error("listen() failed!");
   }
 }
 
