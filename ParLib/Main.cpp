@@ -18,8 +18,8 @@ int main(int argc, const char* args[])
   GNetworkManager->DiscoverAll();
   sleepMs(1000);
   //DEBUGVerbose = true;
-  while (GNetworkManager->GetClientCount() < 4)
-  // while (GNetworkManager->GetClientCount())
+  //while (GNetworkManager->GetClientCount() < 4)
+  while (GNetworkManager->GetClientCount())
   {
     sleepMs(3000);
     std::cout << "CONNECTED CLIENTS: " << GNetworkManager->GetClientCount() << std::endl;

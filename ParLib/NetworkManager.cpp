@@ -117,6 +117,7 @@ void NetworkManager::KeepAliveLoop()
   while (_keepAliveLoop)
   {
     sleepMs(1000);
+    CleanFinishingClients();
    // std::cout << "Sending keep alive messages!" << std::endl;
     std::lock_guard<std::mutex> guard(_lock);
     for (auto& client : _clientConnections)
@@ -154,7 +155,6 @@ void NetworkManager::RegisterFinishingClient(std::shared_ptr<ClientConnection> c
 
 void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
-  CleanFinishingClients();
   std::cout << "Received message type: " << msg->GetMessage()->GetType() << std::endl;
   switch (msg->GetMessage()->GetType())
   {
