@@ -2,6 +2,7 @@
 #include <cstdarg>
 #include <iostream>
 #include <sstream>
+#include <chrono>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -141,4 +142,12 @@ void sleepMs(unsigned long milis)
   }
   usleep((milis % 1000) * 1000);
 #endif // _WIN32
+}
+
+int64_t millis()
+{
+  std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+    std::chrono::system_clock::now().time_since_epoch()
+    );
+  return ms.count();
 }

@@ -1,4 +1,7 @@
 #pragma once
+
+class ServerConnection;
+
 #include <vector>
 #include <mutex>
 #include <memory>

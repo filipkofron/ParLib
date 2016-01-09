@@ -64,7 +64,8 @@ public:
   Message(int32_t type, const char* data, uint64_t length);
   virtual ~Message();
   static std::shared_ptr<Message> Receive(TCPSocket& socket);
-  bool Send(TCPSocket& socket);;
+  bool Send(TCPSocket& socket) const;
+  std::string AsString(int from = 0, int to = -1);
   int32_t GetType() const { return _header ? _header->type : -1; }
   char* GetData() const { return _content ? _content->GetData() : NULL; }
   uint64_t GetLength() const { return _header ? _header->length : 0; }

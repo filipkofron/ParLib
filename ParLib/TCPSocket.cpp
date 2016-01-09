@@ -472,7 +472,7 @@ int TCPSocket::Send(const char* buffer, int length)
   int sent = 0;
   while (sent != length)
   {
-    int currSent = send(_socket, buffer, length - sent, 0);
+    int currSent = send(_socket, buffer + sent, length - sent, 0);
     if (currSent >= 0)
     {
       sent += currSent;
@@ -497,7 +497,7 @@ int TCPSocket::Receive(char* buffer, int length)
   int recvd = 0;
   while (recvd != length)
   {
-    int currRecvd = recv(_socket, buffer, length - recvd, 0);
+    int currRecvd = recv(_socket, buffer + recvd, length - recvd, 0);
     if (currRecvd >= 0)
     {
       recvd += currRecvd;

@@ -14,8 +14,9 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
     Error("Handshake failed!");
     return;
   }
+  conn->_lastTimeAlive = millis();
   conn->_socket->ResetTimeouts();
-  conn->_socket->SetTimeout(10000);
+  conn->_socket->SetTimeout(CLIENT_CONNECTION_TIMEOUT_MS);
   if (!GNetworkManager->AddOrDiscardClient(conn, client))
   {
     std::cout << "NOT connected with <" << conn->GetNetworkId() << "> client: " << client << std::endl;
@@ -29,7 +30,13 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
     auto msg = Message::Receive(*conn->_socket);
     if (msg)
     {
+      conn->_lastTimeAlive = millis();
       GNetworkManager->OnMessage(std::make_shared<ReceivedMessage>(conn->GetNetworkId(), msg));
+    }
+    if (millis() - conn->_lastTimeAlive > CLIENT_CONNECTION_TIMEOUT_MS)
+    {
+      std::cout << "Socket timeout for " << conn->GetNetworkId() << " client: " << client << std::endl;
+      break;
     }
   }
   std::cout << "Socket failure with " << conn->GetNetworkId() << " client: " << client << std::endl;
@@ -118,6 +125,11 @@ void ClientConnection::SendKeepAlive()
 void ClientConnection::SendKeepAliveResp()
 {
   MessageFactory::CreateKeepAliveMessageResp()->Send(*_socket);
+}
+
+bool ClientConnection::SendMessage(const Message& msg)
+{
+  return msg.Send(*_socket);
 }
 
 ClientConnection::~ClientConnection()

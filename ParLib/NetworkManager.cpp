@@ -4,6 +4,8 @@
 #include <iostream>
 #include "MessageFactory.h"
 
+#define ELECTION_TIME_OUT 200
+
 void NetworkManager::AddFoundServers(const std::vector<std::shared_ptr<TCPSocket> >& sockets)
 {
   for (auto& socket : sockets)
@@ -14,7 +16,14 @@ void NetworkManager::AddFoundServers(const std::vector<std::shared_ptr<TCPSocket
 }
 
 NetworkManager::NetworkManager(const std::string& network, int maskBits)
-  : _network(network), _maskBits(maskBits), _keepAliveLoop(true), _keepAliveThread(&NetworkManager::KeepAliveLoop, this)
+  : _network(network), _maskBits(maskBits),
+  _terminate(false),
+  _discovered(false),
+  _keepAliveThread(&NetworkManager::KeepAliveLoop, this),
+  _mainLoopThread(&NetworkManager::MainLoop, this),
+  _leader(false),
+  _sentElectionTime(millis()),
+  _electionParticipant(false)
 {
   std::string localAddr = TCPSocket::GetLocalAddressInSubnet(network, maskBits);
   _serverConnection = std::make_shared<ServerConnection>();
@@ -29,7 +38,7 @@ NetworkManager::NetworkManager(const std::string& network, int maskBits)
   }
 }
 
-std::shared_ptr<ClientConnection> NetworkManager::FindClient(const std::string networkId)
+std::shared_ptr<ClientConnection> NetworkManager::FindClient(const std::string& networkId)
 {
   std::lock_guard<std::mutex> guard(_lock);
   std::shared_ptr<ClientConnection> conn(nullptr);
@@ -60,6 +69,47 @@ void NetworkManager::OnKeepAliveMessage(const std::shared_ptr<ReceivedMessage>& 
   conn->SendKeepAliveResp();
 }
 
+void NetworkManager::OnElectionMessage(const std::shared_ptr<ReceivedMessage>& msg)
+{
+  std::string electId = msg->GetMessage()->AsString();
+  // if (electId >)
+  // TODO
+  std::cout << "Election message came from " << electId << "!" << std::endl;
+}
+
+void NetworkManager::OnElectedMessage(const std::shared_ptr<ReceivedMessage>& msg)
+{
+}
+
+void NetworkManager::MainLoop()
+{
+  while (!_terminate)
+  {
+    Step();
+  }
+}
+
+void NetworkManager::Step()
+{
+  int64_t currTime = millis();
+  if (_discovered && _leaderId.empty() && (currTime - _sentElectionTime) > ELECTION_TIME_OUT)
+  {
+    auto msg = MessageFactory::CreateElectionMessage(GetNetworkId());
+    std::string destId = GetNextId(GetNetworkId());
+    if (destId.empty())
+    {
+      _leader = true;
+      _leaderId = GetNetworkId();
+    }
+    else
+    {
+      SendMessage(*msg, destId);
+      _sentElectionTime = currTime;
+    }
+  }
+  sleepMs(50);
+}
+
 bool NetworkManager::CheckForServer(TCPSocket* socket)
 {
   char b = 0;
@@ -71,11 +121,12 @@ bool NetworkManager::CheckForServer(TCPSocket* socket)
 void NetworkManager::DiscoverAll()
 {
   sleepMs(1000);
+  _discovered = false;
   std::cout << "Discovering all nodes on the network " << _network << ". " << (1 << _maskBits) << " hosts will be scanned." << std::endl;
   int defaultPort = DEFAULT_PORT;
   int maxPort = defaultPort + 8;
   AddrIterator addrIterator(_network, _maskBits);
-  std::vector<std::shared_ptr<TCPSocket>  > foundSockets;
+  std::vector<std::shared_ptr<TCPSocket> > foundSockets;
 #ifndef _WIN32
   const int maxTries = 16;
 #endif // _WIN32
@@ -110,13 +161,14 @@ void NetworkManager::DiscoverAll()
     }
   }
   AddFoundServers(foundSockets);
+  _discovered = true;
 }
 
 void NetworkManager::KeepAliveLoop()
 {
-  while (_keepAliveLoop)
+  while (!_terminate)
   {
-    sleepMs(1000);
+    //sleepMs(1000);
     CleanFinishingClients();
    // std::cout << "Sending keep alive messages!" << std::endl;
     std::lock_guard<std::mutex> guard(_lock);
@@ -137,11 +189,12 @@ void NetworkManager::DisconnectClients()
 
 void NetworkManager::Terminate()
 {
-  _keepAliveLoop = false;
+  _terminate = true;
   CleanFinishingClients();
   _serverConnection->StopServer();
 
   _keepAliveThread.join();
+  _mainLoopThread.join();
   std::lock_guard<std::mutex> guard(_lock);
   _clientConnections.clear();
 }
@@ -155,12 +208,31 @@ void NetworkManager::RegisterFinishingClient(std::shared_ptr<ClientConnection> c
 
 void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
-  std::cout << "Received message type: " << msg->GetMessage()->GetType() << std::endl;
+  if (DEBUGVerbose) std::cout << "Received message type: " << msg->GetMessage()->GetType() << std::endl;
   switch (msg->GetMessage()->GetType())
   {
   case MESSAGE_TYPE_KEEP_ALIVE:
     OnKeepAliveMessage(msg);
+    break;
+  case MESSAGE_TYPE_ELECTION:
+    OnElectionMessage(msg);
+    break;
+  case MESSAGE_TYPE_ELECTED:
+    OnElectedMessage(msg);
+    break;
   }
+}
+
+
+bool NetworkManager::SendMessage(const Message& msg, const std::string& destId)
+{
+  auto client = FindClient(destId);
+  if (client)
+  {
+    return client->SendMessage(msg);
+  }
+
+  return false;
 }
 
 bool NetworkManager::AddOrDiscardClient(const std::shared_ptr<ClientConnection>& client, bool isClient)
@@ -185,17 +257,44 @@ bool NetworkManager::AddOrDiscardClient(const std::shared_ptr<ClientConnection>&
 void NetworkManager::DiscardClient(ClientConnection* client)
 {
   std::lock_guard<std::mutex> guard(_lock);
+  if (client->GetNetworkId() == _leaderId)
+  {
+    _leaderId.clear();
+    _sentElectionTime = false;
+  }
   if (_clientConnections.find(client->GetNetworkId()) == _clientConnections.end())
     return;
   if (_clientConnections[client->GetNetworkId()].get() == client)
     _clientConnections.erase(client->GetNetworkId());
 }
 
-const std::string& NetworkManager::GetNetworkId()
+const std::string& NetworkManager::GetNetworkId() const
 {
   if (!_networkId.size())
   {
     FatalError("Network id unknown!");
   }
   return _networkId;
+}
+
+std::string NetworkManager::GetNextId(const std::string& prev) const
+{
+  std::lock_guard<std::mutex> guard(_lock);
+  std::string leastLargerThan;
+  std::string least;
+
+  for (auto& client : _clientConnections)
+  {
+    const std::string& otherId = client.second->GetNetworkId();
+    if ((otherId < leastLargerThan || leastLargerThan.empty()) && otherId > prev)
+      leastLargerThan = client.second->GetNetworkId();
+
+    if ((least < otherId || least.empty()) && otherId < prev)
+      least = otherId;
+  }
+
+  if (!leastLargerThan.empty())
+    return leastLargerThan;
+
+  return least;
 }

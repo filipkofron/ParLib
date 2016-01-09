@@ -6,15 +6,19 @@ std::shared_ptr<Message> MessageFactory::CreateInitialMessage(const std::string&
   Message* msg = new Message(MESSAGE_TYPE_INITIAL, myId.c_str(), myId.size());
   return std::shared_ptr<Message>(msg);
 }
-/*
+
 std::shared_ptr<Message> MessageFactory::CreateElectionMessage(const std::string& myId)
 {
+  Message* msg = new Message(MESSAGE_TYPE_ELECTION, myId.c_str(), myId.size());
+  return std::shared_ptr<Message>(msg);
 }
 
 std::shared_ptr<Message> MessageFactory::CreateElectedMessage(const std::string& myId)
 {
+  Message* msg = new Message(MESSAGE_TYPE_ELECTED, myId.c_str(), myId.size());
+  return std::shared_ptr<Message>(msg);
 }
-*/
+
 std::shared_ptr<Message> MessageFactory::CreateKeepAliveMessage()
 {
   Message* msg = new Message(MESSAGE_TYPE_KEEP_ALIVE, "", 0);
