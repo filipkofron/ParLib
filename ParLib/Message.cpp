@@ -31,11 +31,13 @@ std::shared_ptr<Message> Message::Receive(TCPSocket& socket)
     Content* content = new Content(header->length);
     if (socket.Receive(reinterpret_cast<char*>(content->data), header->length) == header->length)
     {
-      if (!socket.IsOk()) FatalError("RECEIVE CONTENT ERROR!");
+      FatalError("RECEIVE CONTENT ERROR!");
       return std::make_shared<Message>(header, content);
     }
+    FatalError("RECEIVE CONTENT ERROR!");
     delete content;
   }
+  if (!socket.IsOk()) FatalError("RECEIVE HEADER ERROR!");
   std::cout << "Failure to receive a message rc: " << rc << std::endl;
   delete header;
   return nullptr;
@@ -45,15 +47,19 @@ bool Message::Send(TCPSocket& socket) const
 {
   size_t headerSize = sizeof(*_header);
   int len = socket.Send(reinterpret_cast<const char*>(_header), headerSize);
+  if (!socket.IsOk()) FatalError("SEND HEADER ERROR!");
   if (len != headerSize)
   {
+    FatalError("SEND HEADER ERROR!");
     return false;
   }
   len = socket.Send(reinterpret_cast<const char*>(_content->data), _header->length);
+  if (!socket.IsOk()) FatalError("SEND CONTENT ERROR!");
   if (len == _header->length)
   {
     return true;
   }
+  FatalError("SEND CONTENT ERROR!");
   return false;
 }
 

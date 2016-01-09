@@ -4,7 +4,7 @@
 #include <iostream>
 #include "MessageFactory.h"
 
-#define ELECTION_TIME_OUT 200
+#define ELECTION_TIME_OUT 2
 
 void NetworkManager::AddFoundServers(const std::vector<std::shared_ptr<TCPSocket> >& sockets)
 {
