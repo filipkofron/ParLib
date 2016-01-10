@@ -7,10 +7,15 @@
 #include <vector>
 #include <memory>
 #include "NetworkManager.h"
+#include "Computation.h"
+#include "MaximumCut.h"
+
+#define KILL_TO_DEBUG *((int*) nullptr) = 0
 
 extern bool TerminationInProgress;
 
 extern std::shared_ptr<NetworkManager> GNetworkManager;
+extern std::shared_ptr<Computation> GComputation;
 
 extern int DEBUGVerbose;
 

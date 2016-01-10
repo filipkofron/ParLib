@@ -19,7 +19,7 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
   conn->_socket->SetTimeout(CLIENT_CONNECTION_TIMEOUT_MS);
   if (!GNetworkManager->AddOrDiscardClient(conn, client))
   {
-    std::cout << "NOT connected with <" << conn->GetNetworkId() << "> client: " << client << std::endl;
+    if (DEBUGVerbose) std::cout << "NOT connected with <" << conn->GetNetworkId() << "> client: " << client << std::endl;
     GNetworkManager->RegisterFinishingClient(conn);
     return;
   }
@@ -39,13 +39,15 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
     }
     if (millis() - conn->_lastTimeAlive > CLIENT_CONNECTION_TIMEOUT_MS)
     {
-      std::cout << "Socket timeout for " << conn->GetNetworkId() << " client: " << client << std::endl;
+      if (DEBUGVerbose) std::cout << "Socket timeout for " << conn->GetNetworkId() << " client: " << client << std::endl;
       break;
     }
   }
-  std::cout << "Socket failure with " << conn->GetNetworkId() << " client: " << client << std::endl;
+  if (DEBUGVerbose) std::cout << "Socket failure with " << conn->GetNetworkId() << " client: " << client << std::endl;
   // TODO: Disconnect client.
-  GNetworkManager->RegisterFinishingClient(conn);
+  auto net = GNetworkManager;
+  if (net)
+    net->RegisterFinishingClient(conn);
 }
 
 bool ClientConnection::HandshakeRecv(const std::shared_ptr<ClientConnection>& conn)

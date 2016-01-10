@@ -56,11 +56,14 @@ public:
   void RegisterFinishingClient(std::shared_ptr<ClientConnection> client);
   void OnMessage(const std::shared_ptr<ReceivedMessage>& msg);
   bool SendMsg(const Message& msg, const std::string& destId);
+  bool BroadcastMsg(const Message& msg);
   bool AddOrDiscardClient(const std::shared_ptr<ClientConnection>& client, bool isClient);
   void DiscardClient(ClientConnection* client);
+  std::vector<std::string> GetClients();
   const std::string& GetNetworkId() const;
   std::string GetNextId(const std::string& prev) const;
-  int GetClientCount() const { return _clientConnections.size(); }
+  size_t GetClientCount() const { return _clientConnections.size(); }
 
   const std::string& GetLeaderId() const;
+  bool IsLeader() const { return _leader; }
 };

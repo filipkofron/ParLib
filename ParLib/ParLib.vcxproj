@@ -100,7 +100,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -143,8 +143,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AddrIterator.h" />
+    <ClInclude Include="BlockingQueue.h" />
+    <ClInclude Include="ByteInputStream.h" />
+    <ClInclude Include="ByteOutputStream.h" />
     <ClInclude Include="ClientConnection.h" />
     <ClInclude Include="Common.h" />
+    <ClInclude Include="Computation.h" />
+    <ClInclude Include="DataMessage.h" />
+    <ClInclude Include="StackAssignment.h" />
+    <ClInclude Include="Matrix.h" />
+    <ClInclude Include="MaximumCut.h" />
     <ClInclude Include="Message.h" />
     <ClInclude Include="MessageFactory.h" />
     <ClInclude Include="NetworkManager.h" />
@@ -156,7 +164,10 @@
   <ItemGroup>
     <ClCompile Include="ClientConnection.cpp" />
     <ClCompile Include="Common.cpp" />
+    <ClCompile Include="Computation.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Matrix.cpp" />
+    <ClCompile Include="MaximumCut.cpp" />
     <ClCompile Include="Message.cpp" />
     <ClCompile Include="MessageFactory.cpp" />
     <ClCompile Include="NetworkManager.cpp" />

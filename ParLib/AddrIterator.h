@@ -7,10 +7,11 @@ class AddrSubnetIterator;
 
 class AddrIterator
 {
-  
+public:
+  virtual std::string NextAddr() = 0;
 };
 
-class AddrSubnetIterator
+class AddrSubnetIterator : public AddrIterator
 {
 private:
   int _bits;
@@ -28,7 +29,7 @@ public:
     _maxAddr = _maxAddr | _addr;
   }
 
-  virtual std::string NextAddr()
+  virtual std::string NextAddr() override
   {
     std::string res = "";
     if (_stateAddr <= _maxAddr)
@@ -51,7 +52,8 @@ public:
   }
 };
 
-class AddrRangeIterator
+class AddrRangeIterator : public AddrIterator
 {
-  
+public:
+  std::string NextAddr() override;
 };

@@ -37,8 +37,18 @@ std::shared_ptr<Message> MessageFactory::CreateKeepAliveMessageResp()
   return std::shared_ptr<Message>(msg);
 }
 
-/*
-
-std::shared_ptr<Message> MessageFactory::CreateDataMessage(const uint8_t* data)
+std::shared_ptr<Message> MessageFactory::CreateStackAssignmentMessage(StackAssignment& stackAssign)
 {
-}*/
+  ByteOutputStream bos;
+  stackAssign.Serialize(bos);
+  Message* msg = new Message(MESSAGE_TYPE_STACK_ASSIGNMENT, reinterpret_cast<const char*>(bos.GetData()), bos.GetLength());
+  return std::shared_ptr<Message>(msg);
+}
+
+std::shared_ptr<Message> MessageFactory::CreateAssignmentFinishedMessage(int32_t bestFound)
+{
+  ByteOutputStream bos;
+  bos.PutInt32(bestFound);
+  Message* msg = new Message(MESSAGE_TYPE_ASSIGNMENT_FINISHED, reinterpret_cast<const char*>(bos.GetData()), bos.GetLength());
+  return std::shared_ptr<Message>(msg);
+}

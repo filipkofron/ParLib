@@ -118,6 +118,9 @@ void NetworkManager::OnKnownLeaderMessage(const std::shared_ptr<ReceivedMessage>
   std::string electId = msg->GetMsg()->AsString();
   std::cout << "Known leader message came with " << electId << " from " << msg->GetSenderId() << std::endl;
 
+  if (electId == GetNetworkId())
+    return;
+
   _electionParticipant = false;
   _leaderId = electId;
   _leader = false;
@@ -280,6 +283,11 @@ void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
   case MESSAGE_TYPE_KNOWN_LEADER:
     OnKnownLeaderMessage(msg);
     break;
+  case MESSAGE_TYPE_STACK_ASSIGNMENT:
+    GComputation->AddMessage(msg);
+    break;
+  case MESSAGE_TYPE_ASSIGNMENT_FINISHED:
+    GComputation->AddMessage(msg);
   }
 }
 
@@ -289,6 +297,17 @@ bool NetworkManager::SendMsg(const Message& msg, const std::string& destId)
   if (client)
   {
     return client->SendMsg(msg);
+  }
+
+  return false;
+}
+
+bool NetworkManager::BroadcastMsg(const Message& msg)
+{
+  std::lock_guard<std::mutex> guard(_lock);
+  for (auto& client : _clientConnections)
+  {
+    return client.second->SendMsg(msg);
   }
 
   return false;
@@ -322,6 +341,17 @@ void NetworkManager::DiscardClient(ClientConnection* client)
     _clientConnections.erase(client->GetNetworkId());
   if (client->GetNetworkId() == _leaderId)
     _lostLeader = true;
+}
+
+std::vector<std::string> NetworkManager::GetClients()
+{
+  std::vector<std::string> res;
+  std::lock_guard<std::mutex> guard(_lock);
+  for (auto& client : _clientConnections)
+  {
+    res.push_back(client.first);
+  }
+  return res;
 }
 
 const std::string& NetworkManager::GetNetworkId() const

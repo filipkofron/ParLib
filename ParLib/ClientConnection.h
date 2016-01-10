@@ -2,8 +2,9 @@
 
 class ClientConnection;
 
-#include "TCPSocket.h"
 #include <thread>
+#include "TCPSocket.h"
+#include "StackAssignment.h"
 
 #define CLIENT_CONNECTION_TIMEOUT_MS 10000
 #include "Message.h"

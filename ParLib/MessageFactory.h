@@ -11,5 +11,6 @@ public:
   static std::shared_ptr<Message> CreateKnownLeaderMessage(const std::string& myId);
   static std::shared_ptr<Message> CreateKeepAliveMessage();
   static std::shared_ptr<Message> CreateKeepAliveMessageResp();
-  static std::shared_ptr<Message> CreateDataMessage(const uint8_t* data);
+  static std::shared_ptr<Message> CreateStackAssignmentMessage(StackAssignment& stackAssign);
+  static std::shared_ptr<Message> CreateAssignmentFinishedMessage(int32_t bestFound);
 };
