@@ -1,11 +1,16 @@
 #pragma once
 
-class AddrIterator;
+class AddrSubnetIterator;
 
 #include <string>
 #include "Message.h"
 
 class AddrIterator
+{
+  
+};
+
+class AddrSubnetIterator
 {
 private:
   int _bits;
@@ -13,7 +18,7 @@ private:
   uint32_t _stateAddr;
   uint32_t _maxAddr;
 public:
-  AddrIterator(const std::string& addr, int bits)
+  AddrSubnetIterator(const std::string& addr, int bits)
     : _bits(bits), _addr(ParseIPV4Addr(addr))
   {
     _stateAddr = _addr >> bits;
@@ -23,7 +28,7 @@ public:
     _maxAddr = _maxAddr | _addr;
   }
 
-  std::string NextAddr()
+  virtual std::string NextAddr()
   {
     std::string res = "";
     if (_stateAddr <= _maxAddr)
@@ -44,4 +49,9 @@ public:
       
     return res;
   }
+};
+
+class AddrRangeIterator
+{
+  
 };

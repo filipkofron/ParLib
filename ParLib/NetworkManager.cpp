@@ -4,7 +4,7 @@
 #include <iostream>
 #include "MessageFactory.h"
 
-#define ELECTION_TIME_OUT 2
+#define ELECTION_TIME_OUT 500
 
 void NetworkManager::AddFoundServers(const std::vector<std::shared_ptr<TCPSocket> >& sockets)
 {
@@ -19,6 +19,8 @@ NetworkManager::NetworkManager(const std::string& network, int maskBits)
   : _network(network), _maskBits(maskBits),
   _terminate(false),
   _discovered(false),
+  _lostLeader(false),
+  _started(millis()),
   _keepAliveThread(&NetworkManager::KeepAliveLoop, this),
   _mainLoopThread(&NetworkManager::MainLoop, this),
   _leader(false),
@@ -71,14 +73,54 @@ void NetworkManager::OnKeepAliveMessage(const std::shared_ptr<ReceivedMessage>& 
 
 void NetworkManager::OnElectionMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
-  std::string electId = msg->GetMessage()->AsString();
-  // if (electId >)
-  // TODO
+  std::string electId = msg->GetMsg()->AsString();
   std::cout << "Election message came from " << electId << "!" << std::endl;
+
+  if (electId > GetNetworkId())
+  {
+    SendMsg(*msg->GetMsg(), GetNextId(GetNetworkId()));
+  }
+  else if (electId < GetNetworkId() && !_electionParticipant)
+  {
+    auto msg = MessageFactory::CreateElectionMessage(GetNetworkId());
+    SendMsg(*msg, GetNextId(GetNetworkId()));
+  }
+  else if (electId == GetNetworkId())
+  {
+    _leaderId = GetNetworkId();
+    _leader = true;
+    std::cout << "Me " << _leaderId << " is leader!" << std::endl;
+    _electionParticipant = false;
+    auto msg = MessageFactory::CreateElectedMessage(GetNetworkId());
+    SendMsg(*msg, GetNextId(GetNetworkId()));
+  }
+  // TODO
 }
 
 void NetworkManager::OnElectedMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
+  std::string electId = msg->GetMsg()->AsString();
+  std::cout << "Elected message came with " << electId << " from " << msg->GetSenderId() << std::endl;
+
+  if (electId == GetNetworkId())
+  {
+    std::cout << "Elected message came back to the origin " << electId << std::endl;
+    return;
+  }
+
+  _electionParticipant = false;
+  _leaderId = electId;
+  _leader = false;
+}
+
+void NetworkManager::OnKnownLeaderMessage(const std::shared_ptr<ReceivedMessage>& msg)
+{
+  std::string electId = msg->GetMsg()->AsString();
+  std::cout << "Known leader message came with " << electId << " from " << msg->GetSenderId() << std::endl;
+
+  _electionParticipant = false;
+  _leaderId = electId;
+  _leader = false;
 }
 
 void NetworkManager::MainLoop()
@@ -98,16 +140,30 @@ void NetworkManager::Step()
     std::string destId = GetNextId(GetNetworkId());
     if (destId.empty())
     {
-      _leader = true;
-      _leaderId = GetNetworkId();
+      if (currTime - _started > 10000)
+      {
+        std::cout << "No other host came up in 10 seconds, selecting myself as the leader." << std::endl;
+        _leader = true;
+        _leaderId = GetNetworkId();
+      }
     }
     else
     {
-      SendMessage(*msg, destId);
+      SendMsg(*msg, destId);
       _sentElectionTime = currTime;
     }
   }
-  sleepMs(50);
+  if (_lostLeader)
+  {
+    auto leader = FindClient(_leaderId);
+    if (!leader)
+    {
+      _leader = false;
+      _lostLeader = false;
+      _leaderId.clear();
+    }
+  }
+  sleepMs(100);
 }
 
 bool NetworkManager::CheckForServer(TCPSocket* socket)
@@ -125,7 +181,7 @@ void NetworkManager::DiscoverAll()
   std::cout << "Discovering all nodes on the network " << _network << ". " << (1 << _maskBits) << " hosts will be scanned." << std::endl;
   int defaultPort = DEFAULT_PORT;
   int maxPort = defaultPort + 8;
-  AddrIterator addrIterator(_network, _maskBits);
+  AddrSubnetIterator addrIterator(_network, _maskBits);
   std::vector<std::shared_ptr<TCPSocket> > foundSockets;
 #ifndef _WIN32
   const int maxTries = 16;
@@ -168,13 +224,13 @@ void NetworkManager::KeepAliveLoop()
 {
   while (!_terminate)
   {
-    //sleepMs(1000);
+    sleepMs(100);
     CleanFinishingClients();
    // std::cout << "Sending keep alive messages!" << std::endl;
     std::lock_guard<std::mutex> guard(_lock);
     for (auto& client : _clientConnections)
     {
-      std::cout << "Sending keep alive message to: " << client.first << std::endl;
+      if (DEBUGVerbose) std::cout << "Sending keep alive message to: " << client.first << std::endl;
       client.second->SendKeepAlive();
     }
   }
@@ -208,8 +264,9 @@ void NetworkManager::RegisterFinishingClient(std::shared_ptr<ClientConnection> c
 
 void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
-  if (DEBUGVerbose) std::cout << "Received message type: " << msg->GetMessage()->GetType() << std::endl;
-  switch (msg->GetMessage()->GetType())
+  CleanFinishingClients();
+  if (DEBUGVerbose) std::cout << "Received message type: " << msg->GetMsg()->GetType() << std::endl;
+  switch (msg->GetMsg()->GetType())
   {
   case MESSAGE_TYPE_KEEP_ALIVE:
     OnKeepAliveMessage(msg);
@@ -220,16 +277,18 @@ void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
   case MESSAGE_TYPE_ELECTED:
     OnElectedMessage(msg);
     break;
+  case MESSAGE_TYPE_KNOWN_LEADER:
+    OnKnownLeaderMessage(msg);
+    break;
   }
 }
 
-
-bool NetworkManager::SendMessage(const Message& msg, const std::string& destId)
+bool NetworkManager::SendMsg(const Message& msg, const std::string& destId)
 {
-  auto client = FindClient(destId);
+  std::shared_ptr<ClientConnection> client = FindClient(destId);
   if (client)
   {
-    return client->SendMessage(msg);
+    return client->SendMsg(msg);
   }
 
   return false;
@@ -257,15 +316,12 @@ bool NetworkManager::AddOrDiscardClient(const std::shared_ptr<ClientConnection>&
 void NetworkManager::DiscardClient(ClientConnection* client)
 {
   std::lock_guard<std::mutex> guard(_lock);
-  if (client->GetNetworkId() == _leaderId)
-  {
-    _leaderId.clear();
-    _sentElectionTime = false;
-  }
   if (_clientConnections.find(client->GetNetworkId()) == _clientConnections.end())
     return;
   if (_clientConnections[client->GetNetworkId()].get() == client)
     _clientConnections.erase(client->GetNetworkId());
+  if (client->GetNetworkId() == _leaderId)
+    _lostLeader = true;
 }
 
 const std::string& NetworkManager::GetNetworkId() const
@@ -297,4 +353,9 @@ std::string NetworkManager::GetNextId(const std::string& prev) const
     return leastLargerThan;
 
   return least;
+}
+
+const std::string& NetworkManager::GetLeaderId() const
+{
+  return _leaderId;
 }

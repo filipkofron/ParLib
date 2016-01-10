@@ -12,5 +12,5 @@ private:
 public:
   ReceivedMessage(const std::string& senderId, const std::shared_ptr<Message>& msg) : _senderId(senderId), _message(msg) { }
   const std::string& GetSenderId() const { return _senderId; }
-  const std::shared_ptr<Message>& GetMessage() const { return _message; }
+  const std::shared_ptr<Message>& GetMsg() const { return _message; }
 };

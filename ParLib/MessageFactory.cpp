@@ -19,6 +19,12 @@ std::shared_ptr<Message> MessageFactory::CreateElectedMessage(const std::string&
   return std::shared_ptr<Message>(msg);
 }
 
+std::shared_ptr<Message> MessageFactory::CreateKnownLeaderMessage(const std::string& myId)
+{
+  Message* msg = new Message(MESSAGE_TYPE_KNOWN_LEADER, myId.c_str(), myId.size());
+  return std::shared_ptr<Message>(msg);
+}
+
 std::shared_ptr<Message> MessageFactory::CreateKeepAliveMessage()
 {
   Message* msg = new Message(MESSAGE_TYPE_KEEP_ALIVE, "", 0);

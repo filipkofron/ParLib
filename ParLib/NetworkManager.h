@@ -25,6 +25,9 @@ private:
 
   bool _terminate;
   bool _discovered;
+  bool _lostLeader;
+  int64_t _started;
+  bool _calculationStarted;
   std::thread _keepAliveThread;
 
   std::thread _mainLoopThread;
@@ -40,6 +43,7 @@ private:
   void OnKeepAliveMessage(const std::shared_ptr<ReceivedMessage>& msg);
   void OnElectionMessage(const std::shared_ptr<ReceivedMessage>& msg);
   void OnElectedMessage(const std::shared_ptr<ReceivedMessage>& msg);
+  void OnKnownLeaderMessage(const std::shared_ptr<ReceivedMessage>& msg);
   void MainLoop();
   void Step();
 public:
@@ -51,10 +55,12 @@ public:
   void Terminate();
   void RegisterFinishingClient(std::shared_ptr<ClientConnection> client);
   void OnMessage(const std::shared_ptr<ReceivedMessage>& msg);
-  bool SendMessage(const Message& msg, const std::string& destId);
+  bool SendMsg(const Message& msg, const std::string& destId);
   bool AddOrDiscardClient(const std::shared_ptr<ClientConnection>& client, bool isClient);
   void DiscardClient(ClientConnection* client);
   const std::string& GetNetworkId() const;
   std::string GetNextId(const std::string& prev) const;
   int GetClientCount() const { return _clientConnections.size(); }
+
+  const std::string& GetLeaderId() const;
 };

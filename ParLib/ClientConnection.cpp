@@ -24,7 +24,11 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
     return;
   }
   std::cout << "Connected with <" << conn->GetNetworkId() << "> client: " << client << std::endl;
-   
+  if (!GNetworkManager->GetLeaderId().empty())
+  {
+    auto msg = MessageFactory::CreateKnownLeaderMessage(GNetworkManager->GetLeaderId());
+    conn->SendMsg(*msg);
+  }
   while (conn->_socket->IsOk())
   {
     auto msg = Message::Receive(*conn->_socket);
@@ -94,7 +98,7 @@ bool ClientConnection::Handshake(const std::shared_ptr<ClientConnection>& conn, 
 }
 
 ClientConnection::ClientConnection(const std::shared_ptr<TCPSocket>& socket)
-  : _socket(socket)
+  : _socket(socket), _lastTimeAlive(millis())
 {
 
 }
@@ -119,21 +123,25 @@ void ClientConnection::CleanUp()
 
 void ClientConnection::SendKeepAlive()
 {
+  std::lock_guard<std::mutex> guard(_lock);
   MessageFactory::CreateKeepAliveMessage()->Send(*_socket);
 }
 
 void ClientConnection::SendKeepAliveResp()
 {
+  std::lock_guard<std::mutex> guard(_lock);
   MessageFactory::CreateKeepAliveMessageResp()->Send(*_socket);
 }
 
-bool ClientConnection::SendMessage(const Message& msg)
+bool ClientConnection::SendMsg(const Message& msg)
 {
+  std::lock_guard<std::mutex> guard(_lock);
   return msg.Send(*_socket);
 }
 
 ClientConnection::~ClientConnection()
 {
+  std::lock_guard<std::mutex> guard(_lock);
   CleanUp();
 }
 

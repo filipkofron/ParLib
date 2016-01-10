@@ -14,6 +14,7 @@ private:
   std::shared_ptr<TCPSocket> _socket;
   std::shared_ptr<std::thread> _receiverThread;
   std::string _networkId;
+  std::mutex _lock;
   int64_t _lastTimeAlive;
   static void ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool client);
   static bool HandshakeRecv(const std::shared_ptr<ClientConnection>& conn);
@@ -25,7 +26,7 @@ public:
   void CleanUp();
   void SendKeepAlive();
   void SendKeepAliveResp();
-  bool SendMessage(const Message& msg);
+  bool SendMsg(const Message& msg);
   static void StartReceiverThread(std::shared_ptr<ClientConnection> conn, bool client);
   const std::string& GetNetworkId();
 };

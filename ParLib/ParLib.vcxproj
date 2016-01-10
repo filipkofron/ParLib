@@ -148,6 +148,7 @@
     <ClInclude Include="Message.h" />
     <ClInclude Include="MessageFactory.h" />
     <ClInclude Include="NetworkManager.h" />
+    <ClInclude Include="ParallelStack.h" />
     <ClInclude Include="ReceivedMessage.h" />
     <ClInclude Include="ServerConnection.h" />
     <ClInclude Include="TCPSocket.h" />

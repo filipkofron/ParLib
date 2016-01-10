@@ -25,6 +25,8 @@ int main(int argc, const char* args[])
     std::cout << "CONNECTED CLIENTS: " << GNetworkManager->GetClientCount() << std::endl;
   }
 
+
+
   std::cout << "Press any key to test the server." << std::endl;
   std::cin.get();
 
