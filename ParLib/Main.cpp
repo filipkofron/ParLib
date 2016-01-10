@@ -55,12 +55,12 @@ int main(int argc, const char* args[])
   }
   GComputation->StartComputation();
 
+  while (!GComputation->HasFinished())
+  {
+    sleepMs(100);
+  }
+  GComputation->Terminate();
 
-  std::cout << "Press any key to test the server." << std::endl;
-  std::cin.get();
-
-  std::cout << "Press any key to terminate the server." << std::endl;
-  std::cin.get();
   GNetworkManager->Terminate();
   GNetworkManager = nullptr;
 

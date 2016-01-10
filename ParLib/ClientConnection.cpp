@@ -118,7 +118,9 @@ void ClientConnection::CleanUp()
   }
   if (_networkId.size() > 0)
   {
-    GNetworkManager->DiscardClient(this);
+    auto net = GNetworkManager;
+    if (net)
+      net->DiscardClient(this);
   }
   _socket = nullptr;
 }

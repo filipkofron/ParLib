@@ -52,3 +52,24 @@ std::shared_ptr<Message> MessageFactory::CreateAssignmentFinishedMessage(int32_t
   Message* msg = new Message(MESSAGE_TYPE_ASSIGNMENT_FINISHED, reinterpret_cast<const char*>(bos.GetData()), bos.GetLength());
   return std::shared_ptr<Message>(msg);
 }
+
+std::shared_ptr<Message> MessageFactory::CreateRequestReturnStackMessage()
+{
+  Message* msg = new Message(MESSAGE_TYPE_REQUEST_RETURN_STACK, "", 0);
+  return std::shared_ptr<Message>(msg);
+}
+
+std::shared_ptr<Message> MessageFactory::CreateReturningStackMessage(const std::vector<std::vector<int>>& stack, int32_t best)
+{
+  ByteOutputStream bos;
+  bos.PutIntArrayArray(stack);
+  bos.PutInt32(best);
+  Message* msg = new Message(MESSAGE_TYPE_RETURNING_STACK, reinterpret_cast<const char*>(bos.GetData()), bos.GetLength());
+  return std::shared_ptr<Message>(msg);
+}
+
+std::shared_ptr<Message> MessageFactory::CreateTerminateMessage()
+{
+  Message* msg = new Message(MESSAGE_TYPE_TERMINATE, "", 0);
+  return std::shared_ptr<Message>(msg);
+}

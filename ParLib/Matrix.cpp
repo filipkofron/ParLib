@@ -172,7 +172,7 @@ std::set<int32_t> Matrix::getNeigh(int32_t idx) const
 {
   std::set<int32_t> ret;
 
-  for (int32_t i = 0;i<size;i++)
+  for (uint32_t i = 0;i<size;i++)
   {
     if (array[idx][i]>0)
     {

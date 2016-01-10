@@ -1,7 +1,15 @@
 #pragma once
+
+class StackAssignment;
+
+#include "Common.h"
+#include "NetworkManager.h"
 #include "DataMessage.h"
 #include <unordered_map>
 #include "Parallelstack.h"
+
+class NetworkManager;
+extern std::shared_ptr<NetworkManager> GNetworkManager;
 
 class StackAssignment : public DataMessage
 {
@@ -35,5 +43,20 @@ public:
     return _assignments[client];
   }
 
+  std::vector<std::string> GetClients()
+  {
+    std::vector<std::string> clients;
+    for (auto& each : _assignments)
+    {
+      clients.push_back(each.first);
+    }
+    return clients;
+  }
+
   size_t GetSize() const { return _assignments.size();  }
+
+  bool Equals(const std::string& id, const std::shared_ptr<StackAssignment>& assign)
+  {
+    return _assignments[id] == assign->_assignments[id];
+  }
 };

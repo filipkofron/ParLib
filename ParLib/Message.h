@@ -4,10 +4,10 @@
 #define MSG_DEST_LEN 32
 #include <string>
 
-class TCPSocket;
 class Message;
 
 #include "Common.h"
+#include "TCPSocket.h"
 
 #define MESSAGE_TYPE_INITIAL 0
 #define MESSAGE_TYPE_ELECTION 1
@@ -17,6 +17,9 @@ class Message;
 #define MESSAGE_TYPE_KEEP_ALIVE_RESP 5
 #define MESSAGE_TYPE_STACK_ASSIGNMENT 6
 #define MESSAGE_TYPE_ASSIGNMENT_FINISHED 7
+#define MESSAGE_TYPE_REQUEST_RETURN_STACK 8
+#define MESSAGE_TYPE_RETURNING_STACK 9
+#define MESSAGE_TYPE_TERMINATE 10
 
 class Message
 {

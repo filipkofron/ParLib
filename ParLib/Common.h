@@ -14,6 +14,7 @@
 
 extern bool TerminationInProgress;
 
+class Computation;
 extern std::shared_ptr<NetworkManager> GNetworkManager;
 extern std::shared_ptr<Computation> GComputation;
 

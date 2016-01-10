@@ -1,5 +1,8 @@
 #pragma once
 #include <vector>
+
+class DataMessage;
+
 #include "ByteOutputStream.h"
 #include "ByteInputStream.h"
 
