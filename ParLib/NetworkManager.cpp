@@ -252,8 +252,12 @@ void NetworkManager::Terminate()
   CleanFinishingClients();
   _serverConnection->StopServer();
 
-  _keepAliveThread.join();
-  _mainLoopThread.join();
+  if (_keepAliveThread.get_id() != std::this_thread::get_id())
+    _keepAliveThread.join();
+
+  if (_mainLoopThread.get_id() != std::this_thread::get_id())
+    _mainLoopThread.join();
+
   std::lock_guard<std::mutex> guard(_lock);
   _clientConnections.clear();
 }

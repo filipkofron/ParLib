@@ -31,6 +31,7 @@ private:
   std::shared_ptr<std::thread> _computeLoop;
   std::shared_ptr<StackAssignment> _currAssignment;
   std::vector<ReturnedStack> _returnedStacks;
+  std::vector<ReturnedStack> _UnIdreturnedStacks;
   void ComputationLoop();
   std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > GetParallelStacks(int count);
   std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > GetReturnedParallelStacks(int count);

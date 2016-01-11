@@ -12,6 +12,7 @@
 
 std::shared_ptr<NetworkManager> GNetworkManager;
 std::shared_ptr<Computation> GComputation;
+std::vector<std::shared_ptr<std::thread> > GTerminatingThreads;
 
 #define JOB_PATH_LINUX "/mnt/job/test.txt"
 #define JOB_PATH_WINDOWS "\\\\192.168.56.101\\jobs\\test.txt"
@@ -62,8 +63,17 @@ int main(int argc, const char* args[])
   GComputation->Terminate();
 
   GNetworkManager->Terminate();
+  std::cout << "Waiting for all threads to stop." << std::endl;
+  sleepMs(300);
   GNetworkManager = nullptr;
 
-  OnEnd();
+  for (auto& t : GTerminatingThreads)
+  {
+    if (t)
+      t->join();
+  }
+  GTerminatingThreads.clear();
+
+  OnEnd(false);
   return 0;
 }

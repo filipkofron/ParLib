@@ -111,10 +111,14 @@ void ClientConnection::CleanUp()
   {
     _socket->Close();
   }  
-  if (_receiverThread)
+  if (_receiverThread && _receiverThread->get_id() != std::this_thread::get_id())
   {
     _receiverThread->join();
     _receiverThread = nullptr;
+  }
+  else
+  {
+    GTerminatingThreads.push_back(_receiverThread);
   }
   if (_networkId.size() > 0)
   {

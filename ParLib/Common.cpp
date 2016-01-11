@@ -80,7 +80,7 @@ void OnStart()
   std::cout << "ParLib booting up." << std::endl;
 }
 
-void OnEnd()
+void OnEnd(bool waitForUserInput)
 {
   TerminationInProgress = true;
 #ifdef _WIN32
@@ -127,7 +127,7 @@ void FatalError(const char* format, ...)
   va_start(args, format);
   Error(format, args);
   va_end(args);
-  OnEnd();
+  OnEnd(true);
   exit(1);
 }
 

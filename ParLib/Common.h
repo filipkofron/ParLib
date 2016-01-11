@@ -20,6 +20,8 @@ extern std::shared_ptr<Computation> GComputation;
 
 extern int DEBUGVerbose;
 
+extern std::vector<std::shared_ptr<std::thread> > GTerminatingThreads;
+
 /**
 * Just before the start. Print some info.
 */
@@ -28,7 +30,7 @@ void OnStart();
 /**
  * Just before the exit cleanup sockets. Waiting for user input could also be useful.
  */
-void OnEnd();
+void OnEnd(bool waitForUserInput);
 
 /**
 * Upon an info shows given formatted message.
