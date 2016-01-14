@@ -289,12 +289,6 @@ void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
   case MESSAGE_TYPE_ASSIGNMENT_FINISHED:
     GComputation->AddMessage(msg);
     break;
-  case MESSAGE_TYPE_REQUEST_RETURN_STACK:
-    GComputation->AddMessage(msg);
-    break;
-  case MESSAGE_TYPE_RETURNING_STACK:
-    GComputation->AddMessage(msg);
-    break;
   case MESSAGE_TYPE_TERMINATE:
     GComputation->AddMessage(msg);
     break;

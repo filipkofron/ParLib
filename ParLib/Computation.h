@@ -16,7 +16,6 @@ private:
   {
     Initial,
     Computing,
-    ReAssignment,
     Waiting,
     Terminating,
     Finished
@@ -33,7 +32,6 @@ private:
   std::vector<ReturnedStack> _returnedStacks;
   void ComputationLoop();
   std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > GetParallelStacks(int count);
-  std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > GetReturnedParallelStacks(int count);
   void InitLeaderStep();
   void CheckAssignments();
   void LeaderStep();
@@ -42,8 +40,6 @@ private:
   void OnAssignment(const std::shared_ptr<StackAssignment>& assign);
   void OnAssignmentFinished(int32_t best, const std::string& clientId);
   void OnTerminate();
-  void OnRequestReturnStack();
-  void OnRequestReturningStack(const std::string&sender, const std::vector<std::vector<int>>& vec, int32_t best);
   void OnMessage(const std::shared_ptr<ReceivedMessage>& msg);
   void ReadMessages();
   State _state;
