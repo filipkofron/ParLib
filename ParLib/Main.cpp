@@ -14,7 +14,7 @@ std::shared_ptr<NetworkManager> GNetworkManager;
 std::shared_ptr<Computation> GComputation;
 std::vector<std::shared_ptr<std::thread> > GTerminatingThreads;
 
-#define JOB_PATH_LINUX "/mnt/job/test.txt"
+#define JOB_PATH_LINUX "/mnt/jobs/test.txt"
 #define JOB_PATH_WINDOWS "\\\\192.168.56.101\\jobs\\test.txt"
 
 void ReadJob()
