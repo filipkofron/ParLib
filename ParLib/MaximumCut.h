@@ -4,7 +4,7 @@ class MaximumCut;
 
 #include <memory>
 #include "Matrix.h"
-#include "Parallelstack.h"
+#include "ParallelStack.h"
 
 class MaximumCut
 {

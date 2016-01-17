@@ -7,7 +7,7 @@ class StackAssignment;
 #include "NetworkManager.h"
 #include "DataMessage.h"
 #include <unordered_map>
-#include "Parallelstack.h"
+#include "ParallelStack.h"
 
 class NetworkManager;
 extern std::shared_ptr<NetworkManager> GNetworkManager;
