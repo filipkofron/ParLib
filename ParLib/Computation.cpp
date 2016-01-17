@@ -452,7 +452,7 @@ void Computation::OnAssignmentFinished(int32_t best, const std::string& clientId
 
 void Computation::OnTerminate()
 {
-  std::cout << "Termination request from leader, terminating this node." << std::endl;
+  std::cout << "Termination request from leader, terminating this node, max: " << _bestFound << std::endl;
   _state = Finished;
 }
 
