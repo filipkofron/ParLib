@@ -10,6 +10,10 @@
 #include "MaximumCut.h"
 #include "Computation.h"
 
+#ifndef _WIN32
+#include <signal.h>
+#endif // _WIN32
+
 std::shared_ptr<NetworkManager> GNetworkManager;
 std::shared_ptr<Computation> GComputation;
 std::vector<std::shared_ptr<std::thread> > GTerminatingThreads;
@@ -40,6 +44,9 @@ void ReadJob()
 
 int main(int argc, const char* args[])
 {
+#ifndef _WIN32
+  signal(SIGPIPE, SIG_IGN);
+#endif // _WIN32
   OnStart();
   GComputation = std::make_shared<Computation>();
   ReadJob();
