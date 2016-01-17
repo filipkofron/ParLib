@@ -2,6 +2,21 @@
 #include <iostream>
 #include "StackAssignment.h"
 #include "MessageFactory.h"
+#include <iterator>
+
+std::set<std::string> Computation::GetAssignedClients() const
+{
+  std::set<std::string> res;
+  if (!_currAssignment)
+    return res;
+
+  for (auto& assign : _currAssignment->GetClients())
+  {
+    res.insert(assign);
+  }
+  
+  return res;
+}
 
 void Computation::ComputationLoop()
 {
@@ -26,14 +41,13 @@ void Computation::ComputationLoop()
   }
 }
 
-std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > Computation::GetParallelStacks(int count)
+std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > Computation::GetParallelStacks(const std::vector<std::vector<int> > states, int count)
 {
   std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > pars;
   std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > newPars;
   
   pars.push_back(std::make_shared<ParallelStack<std::vector<int> > >());
-  auto origStates = _maximumCut->getStates().getData();
-  pars[0]->assignData(origStates);
+  pars[0]->assignData(states);
   newPars = pars;
 
   while (pars.size() && pars.size() < count)
@@ -67,7 +81,7 @@ void Computation::InitLeaderStep()
   for (int i = 0; i < 5; i++)
     ComputeStep();
 
-  std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > pars = GetParallelStacks(count);
+  std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > pars = GetParallelStacks(_maximumCut->getStates().getData(), count);
   if (pars.size() != count)
   {
     FatalError("Error division!");
@@ -86,13 +100,239 @@ void Computation::InitLeaderStep()
   }
 }
 
+void Computation::OnDivideWith(const std::string& with)
+{
+  std::cout << "Divide with: " << with << std::endl;
+  auto parStacks = GetParallelStacks(_maximumCut->getStates().getData(), 2);
+  if (parStacks.size() != 2 || parStacks[0]->size() == 0)
+  {
+    std::cout << "OnDivideWith: Too little work to do" << std::endl;
+    return;
+  }
+  _maximumCut->getStates().assignData(parStacks[0]->getData());
+
+  auto assign = std::make_shared<StackAssignment>();
+
+  assign->GetAssignment(GNetworkManager->GetNetworkId()) = parStacks[0]->getData();
+  assign->GetAssignment(with) = parStacks[1]->getData();
+
+  auto msg = MessageFactory::CreateStackAssignmentMessage(*assign);
+  GNetworkManager->BroadcastMsg(*msg);
+  OnAssignment(assign);
+}
+
 void Computation::CheckAssignments()
 {
+  if (millis() - _lastAssignCheck < 150)
+    return;
+
+  _lastAssignCheck = millis();
+
   auto net = GNetworkManager;
   if (!net)
     return;
 
- 
+  if (_currAssignment)
+  {
+    std::cout << "Me: " << GNetworkManager->GetNetworkId() << std::endl;
+    _currAssignment->PrintAssignments();
+  }
+
+  std::set<std::string> knownClients;
+  std::set<std::string> assignedClients = GetAssignedClients();
+
+  // Fill known clients
+  {
+    auto knownClientsVec = GNetworkManager->GetClients();
+    knownClientsVec.push_back(GNetworkManager->GetNetworkId());
+    for (const auto& client : knownClientsVec)
+      knownClients.insert(client);
+  }
+  
+  std::set<std::string> newClients;
+  std::set_difference(
+    knownClients.begin(), knownClients.end(),
+    assignedClients.begin(), assignedClients.end(),
+    std::inserter(newClients, newClients.begin()));
+
+  std::set<std::string> disconnectedClients;
+  std::set_difference(
+    assignedClients.begin(), assignedClients.end(),
+    knownClients.begin(), knownClients.end(),
+    std::inserter(disconnectedClients, disconnectedClients.begin()));
+
+  std::set<std::string> finishedClients;
+  for (const auto& assign : assignedClients)
+  {
+    if (_currAssignment->GetAssignment(assign).size() == 0)
+      finishedClients.insert(assign);
+  }
+
+  // === Clear disconnected clients with no jobs ===
+  {
+    std::vector<std::string> clearedDisconnected;
+    for (const auto& disc : disconnectedClients)
+    {
+      if (_currAssignment)
+      {
+        if (_currAssignment->GetAssignment(disc).size() == 0)
+        {
+          _currAssignment->Remove(disc);
+          finishedClients.erase(disc);
+          clearedDisconnected.push_back(disc);
+        }
+      }
+    }
+    for (const auto& disc : clearedDisconnected)
+    {
+      disconnectedClients.erase(disc);
+    }
+  }
+
+  std::set<std::string> needJobClients;
+  needJobClients = newClients;
+  for (const auto& finished : finishedClients)
+    needJobClients.insert(finished);
+
+  std::set<std::string> workingClients;
+  workingClients = knownClients;
+  for (const auto& needJob : needJobClients)
+    workingClients.erase(needJob);
+
+  // === Structures correctly filled ===
+
+  for (auto finished : finishedClients)
+  {
+    std::cout << "Finished: " << finished << std::endl;
+  }
+
+  for (auto newc : newClients)
+  {
+    std::cout << "New: " << newc << std::endl;
+  }
+
+  for (auto disc : disconnectedClients)
+  {
+    std::cout << "Disconnected: " << disc << std::endl;
+  }
+
+  for (auto known : knownClients)
+  {
+    std::cout << "Known: " << known << std::endl;
+  }
+
+  for (auto need : needJobClients)
+  {
+    std::cout << "Needs job: " << need << std::endl;
+  }
+
+  std::cout << "Checking assignments." << std::endl;
+
+  // == Terminate calculation when no jobs are left ==
+
+  if (finishedClients.size() + newClients.size() == knownClients.size())
+  {
+    // only when no left over job is present we can end the computation
+    if (disconnectedClients.size() == 0)
+    {
+      auto msg = MessageFactory::CreateTerminateMessage();
+      net->BroadcastMsg(*msg);
+      OnTerminate();
+    }
+  }
+
+  // === Give jobs for those that need it ===
+
+  std::shared_ptr<StackAssignment> newAssignments = std::make_shared<StackAssignment>();
+
+  // == Give jobs from disconnected clients ==
+  {
+    int assignmentsNum = 0;
+    while (disconnectedClients.size() > 0 && needJobClients.size() > 0)
+    {
+      assignmentsNum++;
+      std::string givenJobTo;
+      std::string givenJobFrom;
+      for (const auto& job : disconnectedClients)
+      {
+        givenJobFrom = job;
+        break;
+      }
+      for (const auto& job : needJobClients)
+      {
+        givenJobTo = job;
+        break;
+      }
+      disconnectedClients.erase(givenJobFrom);
+      needJobClients.erase(givenJobTo);      
+      newAssignments->GetAssignment(givenJobTo) = _currAssignment->GetAssignment(givenJobFrom);
+      newAssignments->GetAssignment(givenJobFrom) = std::vector<std::vector<int> >();
+    }
+    if (assignmentsNum > 0)
+    {
+      OnAssignment(newAssignments);
+
+      auto msg = MessageFactory::CreateStackAssignmentMessage(*newAssignments);
+      net->BroadcastMsg(*msg);
+    }
+  }
+
+  for (const auto& workingClient : workingClients)
+  {
+    if (needJobClients.size() == 0)
+      break;
+
+    std::string needsJob;
+    for (const auto& needClient : needJobClients)
+    {
+      needsJob = needClient;
+      break;
+    }
+    needJobClients.erase(needsJob);
+
+    auto msg = MessageFactory::CreateDivideWithMessage(needsJob);
+    if (workingClient != GNetworkManager->GetNetworkId())
+      net->SendMsg(*msg, workingClient);
+    else
+      OnDivideWith(needsJob);
+  }
+}
+
+void Computation::ClearDisconnected()
+{
+  if (millis() - _lastAssignCheck < 50)
+    return;
+
+  _lastAssignCheck = millis();
+
+  if (_currAssignment)
+  {
+    std::cout << "Me: " << GNetworkManager->GetNetworkId() << std::endl;
+    _currAssignment->PrintAssignments();
+  }
+
+  auto knownClientsVec = GNetworkManager->GetClients();
+  knownClientsVec.push_back(GNetworkManager->GetNetworkId());
+  std::set<std::string> knownClients;
+  std::set<std::string> assignedClients = GetAssignedClients();
+
+  for (const auto& client : knownClientsVec)
+    knownClients.insert(client);
+
+  std::set<std::string> disconnectedClients;
+  std::set_difference(
+    assignedClients.begin(), assignedClients.end(),
+    knownClients.begin(), knownClients.end(),
+    std::inserter(disconnectedClients, disconnectedClients.begin()));
+
+  for (const auto& disc : disconnectedClients)
+  {
+    if (_currAssignment)
+    {
+      if (_currAssignment->GetAssignment(disc).size() == 0)
+        _currAssignment->Remove(disc);
+    }
+  }
 }
 
 void Computation::LeaderStep()
@@ -129,6 +369,7 @@ void Computation::NonLeaderStep()
     break;
   default: break;
   }
+  ClearDisconnected();
 }
 
 void Computation::ComputeStep()
@@ -154,7 +395,12 @@ void Computation::ComputeStep()
 void Computation::OnAssignment(const std::shared_ptr<StackAssignment>& assign)
 {
   std::cout << "Assignment came - contents " << assign->GetSize() << " clients" << std::endl;
-  _currAssignment = assign;
+
+  if (_currAssignment)
+    _currAssignment->Update(assign);
+  else
+    _currAssignment = assign;
+
 
   if (_state != Computing)
   {
@@ -179,16 +425,13 @@ void Computation::OnAssignment(const std::shared_ptr<StackAssignment>& assign)
 void Computation::OnAssignmentFinished(int32_t best, const std::string& clientId)
 {
   std::cout << "Announcing some max found by '" << clientId << "': " << best << std::endl;
+  DebugFile("[%s] Assignment finished from [%s] with [%i]", GNetworkManager->GetNetworkId().c_str(), clientId.c_str(), best);
   if (best > _bestFound)
   {
     _bestFound = best;
     std::cout << "Best found by '" << clientId << "': " << best << std::endl;
   }
-  auto& assign = _currAssignment->GetAssignment(clientId);
-  if (assign.size() > 0)
-  {
-    assign.clear();
-  }
+  _currAssignment->GetAssignment(clientId).clear();
 }
 
 void Computation::OnTerminate()
@@ -213,6 +456,9 @@ void Computation::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
   } else if (type == MESSAGE_TYPE_TERMINATE)
   {
     OnTerminate();
+  } else if (type == MESSAGE_TYPE_DIVIDE_WITH)
+  {
+    OnDivideWith(bis.NextString());
   }
 }
 
@@ -225,7 +471,7 @@ void Computation::ReadMessages()
 }
 
 Computation::Computation()
-  : _state(State::Initial), _bestFound(0)
+  : _state(State::Initial), _bestFound(0), _lastAssignCheck(millis())
 {
 }
 

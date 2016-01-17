@@ -254,6 +254,11 @@ void NetworkManager::Terminate()
 
   _keepAliveThread.join();
   _mainLoopThread.join();
+  DisconnectClients();
+
+  CleanFinishingClients();
+  sleepMs(500);
+
   std::lock_guard<std::mutex> guard(_lock);
   _clientConnections.clear();
 }
@@ -289,6 +294,9 @@ void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
   case MESSAGE_TYPE_ASSIGNMENT_FINISHED:
     GComputation->AddMessage(msg);
     break;
+  case MESSAGE_TYPE_DIVIDE_WITH:
+    GComputation->AddMessage(msg);
+    break;
   case MESSAGE_TYPE_TERMINATE:
     GComputation->AddMessage(msg);
     break;
@@ -309,12 +317,13 @@ bool NetworkManager::SendMsg(const Message& msg, const std::string& destId)
 bool NetworkManager::BroadcastMsg(const Message& msg)
 {
   std::lock_guard<std::mutex> guard(_lock);
+  bool success = true;
   for (auto& client : _clientConnections)
   {
-    return client.second->SendMsg(msg);
+    success &= client.second->SendMsg(msg);
   }
 
-  return false;
+  return success;
 }
 
 bool NetworkManager::AddOrDiscardClient(const std::shared_ptr<ClientConnection>& client, bool isClient)

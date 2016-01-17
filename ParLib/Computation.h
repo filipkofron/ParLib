@@ -30,10 +30,13 @@ private:
   std::shared_ptr<std::thread> _computeLoop;
   std::shared_ptr<StackAssignment> _currAssignment;
   std::vector<ReturnedStack> _returnedStacks;
+  std::set<std::string> GetAssignedClients() const;
   void ComputationLoop();
-  std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > GetParallelStacks(int count);
+  std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > GetParallelStacks(const std::vector<std::vector<int> > states, int count);
   void InitLeaderStep();
+  void OnDivideWith(const std::string& with);
   void CheckAssignments();
+  void ClearDisconnected();
   void LeaderStep();
   void NonLeaderStep();
   void ComputeStep();
@@ -44,6 +47,7 @@ private:
   void ReadMessages();
   State _state;
   int32_t _bestFound;
+  int64_t _lastAssignCheck;
 public:
   Computation();
   ~Computation();

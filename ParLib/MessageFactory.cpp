@@ -53,18 +53,11 @@ std::shared_ptr<Message> MessageFactory::CreateAssignmentFinishedMessage(int32_t
   return std::shared_ptr<Message>(msg);
 }
 
-std::shared_ptr<Message> MessageFactory::CreateRequestReturnStackMessage()
-{
-  Message* msg = new Message(MESSAGE_TYPE_REQUEST_RETURN_STACK, "", 0);
-  return std::shared_ptr<Message>(msg);
-}
-
-std::shared_ptr<Message> MessageFactory::CreateReturningStackMessage(const std::vector<std::vector<int>>& stack, int32_t best)
+std::shared_ptr<Message> MessageFactory::CreateDivideWithMessage(const std::string& with)
 {
   ByteOutputStream bos;
-  bos.PutIntArrayArray(stack);
-  bos.PutInt32(best);
-  Message* msg = new Message(MESSAGE_TYPE_RETURNING_STACK, reinterpret_cast<const char*>(bos.GetData()), bos.GetLength());
+  bos.PutString(with);
+  Message* msg = new Message(MESSAGE_TYPE_DIVIDE_WITH, reinterpret_cast<const char*>(bos.GetData()), bos.GetLength());
   return std::shared_ptr<Message>(msg);
 }
 

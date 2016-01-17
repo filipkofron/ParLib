@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 
 class StackAssignment;
 
@@ -58,5 +59,26 @@ public:
   bool Equals(const std::string& id, const std::shared_ptr<StackAssignment>& assign)
   {
     return _assignments[id] == assign->_assignments[id];
+  }
+
+  void Update(const std::shared_ptr<StackAssignment>& assign)
+  {
+    for (auto& each : assign->_assignments)
+    {
+      _assignments[each.first] = each.second;
+    }
+  }
+
+  void Remove(const std::string& client)
+  {
+    _assignments.erase(client);
+  }
+
+  void PrintAssignments()
+  {
+    for (auto& each : _assignments)
+    {
+      std::cout << each.first << ": " << each.second.size() << std::endl;
+    }
   }
 };

@@ -3,6 +3,8 @@
 #include "MessageFactory.h"
 #include <iostream>
 
+static std::vector<std::shared_ptr<ClientConnection> > UncleanableClients;
+
 void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool client)
 {
   conn->_socket->SetTimeout(30000);
@@ -48,6 +50,8 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
   auto net = GNetworkManager;
   if (net)
     net->RegisterFinishingClient(conn);
+  else
+    UncleanableClients.push_back(conn);
 }
 
 bool ClientConnection::HandshakeRecv(const std::shared_ptr<ClientConnection>& conn)
@@ -111,7 +115,7 @@ void ClientConnection::CleanUp()
   {
     _socket->Close();
   }  
-  if (_receiverThread)
+  if (_receiverThread && _receiverThread->get_id() != std::this_thread::get_id())
   {
     _receiverThread->join();
     _receiverThread = nullptr;

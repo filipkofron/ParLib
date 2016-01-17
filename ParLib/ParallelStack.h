@@ -15,7 +15,7 @@ public:
   T& top();
   void pop();
   size_t size();
-  void assignData(std::vector<T>& data);
+  void assignData(const std::vector<T>& data);
   std::vector<T> getData();
   ParallelStack<T> giveTopHalf();
   ParallelStack<T> giveTopQuarter();
@@ -53,7 +53,7 @@ size_t ParallelStack<T>::size()
   return data.size();
 }
 
-template<class T> void ParallelStack<T>::assignData(std::vector<T>& data)
+template<class T> void ParallelStack<T>::assignData(const std::vector<T>& data)
 {
   this->data = data;
 }

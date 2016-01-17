@@ -10,6 +10,8 @@
 
 #include "Common.h"
 #include "TCPSocket.h"
+#include <fstream>
+#include <random>
 
 bool TerminationInProgress = false;
 
@@ -131,17 +133,35 @@ void FatalError(const char* format, ...)
   exit(1);
 }
 
+static std::shared_ptr<std::ofstream> DebugLog;
+static std::mutex DebugLogLock;
+
+void DebugFile(const char* format, ...)
+{
+  std::lock_guard<std::mutex> lockGuard(DebugLogLock);
+  if (!DebugLog)
+  {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(1, 6666666);
+    std::string filename = "debug_" + std::to_string(dis(gen)) + ".txt";
+    DebugLog = std::make_shared<std::ofstream>(filename.c_str());
+  }
+  va_list args;
+  va_start(args, format);
+  size_t maxLen = strlen(format) + 1024;
+  char* buffer = new char[maxLen + 1];
+  memset(buffer, 0, maxLen + 1);
+  vsnprintf(buffer, maxLen, format, args);
+  *DebugLog << buffer << std::endl;
+  DebugLog->flush();
+  va_end(args);
+  delete[] buffer;
+}
+
 void sleepMs(unsigned long milis)
 {
-#ifdef _WIN32
-  Sleep(milis);
-#else // _WIN32
-  if (milis > 1000)
-  {
-    sleep(milis / 1000);
-  }
-  usleep((milis % 1000) * 1000);
-#endif // _WIN32
+  std::this_thread::sleep_for(std::chrono::milliseconds(milis));
 }
 
 int64_t millis()
