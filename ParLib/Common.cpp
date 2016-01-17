@@ -138,6 +138,7 @@ static std::mutex DebugLogLock;
 
 void DebugFile(const char* format, ...)
 {
+  return;
   std::lock_guard<std::mutex> lockGuard(DebugLogLock);
   if (!DebugLog)
   {

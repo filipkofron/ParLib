@@ -3,6 +3,7 @@
 #include "StackAssignment.h"
 #include "MessageFactory.h"
 #include <iterator>
+#include <algorithm>
 
 std::set<std::string> Computation::GetAssignedClients() const
 {
