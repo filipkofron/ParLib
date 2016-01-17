@@ -1,6 +1,6 @@
 
 #include "Common.h"
-#include "Parallelstack.h"
+#include "ParallelStack.h"
 #include <iostream>
 #include <algorithm>
 #include "MaximumCut.h"

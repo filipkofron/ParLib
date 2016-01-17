@@ -16,7 +16,6 @@ private:
   {
     Initial,
     Computing,
-    ReAssignment,
     Waiting,
     Terminating,
     Finished
@@ -31,24 +30,24 @@ private:
   std::shared_ptr<std::thread> _computeLoop;
   std::shared_ptr<StackAssignment> _currAssignment;
   std::vector<ReturnedStack> _returnedStacks;
-  std::vector<ReturnedStack> _UnIdreturnedStacks;
+  std::set<std::string> GetAssignedClients() const;
   void ComputationLoop();
-  std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > GetParallelStacks(int count);
-  std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > GetReturnedParallelStacks(int count);
+  std::vector<std::shared_ptr<ParallelStack<std::vector<int> > > > GetParallelStacks(const std::vector<std::vector<int> > states, int count);
   void InitLeaderStep();
+  void OnDivideWith(const std::string& with);
   void CheckAssignments();
+  void ClearDisconnected();
   void LeaderStep();
   void NonLeaderStep();
   void ComputeStep();
   void OnAssignment(const std::shared_ptr<StackAssignment>& assign);
   void OnAssignmentFinished(int32_t best, const std::string& clientId);
   void OnTerminate();
-  void OnRequestReturnStack();
-  void OnRequestReturningStack(const std::string&sender, const std::vector<std::vector<int>>& vec, int32_t best);
   void OnMessage(const std::shared_ptr<ReceivedMessage>& msg);
   void ReadMessages();
   State _state;
   int32_t _bestFound;
+  int64_t _lastAssignCheck;
 public:
   Computation();
   ~Computation();
