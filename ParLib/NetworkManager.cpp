@@ -24,7 +24,7 @@ NetworkManager::NetworkManager(const std::string& network, int maskBits)
   _keepAliveThread(&NetworkManager::KeepAliveLoop, this),
   _mainLoopThread(&NetworkManager::MainLoop, this),
   _leader(false),
-  _sentElectionTime(millis()),
+  _sentElectionTime(millis() + 500),
   _electionParticipant(false)
 {
   std::string localAddr = TCPSocket::GetLocalAddressInSubnet(network, maskBits);
@@ -76,14 +76,21 @@ void NetworkManager::OnElectionMessage(const std::shared_ptr<ReceivedMessage>& m
   std::string electId = msg->GetMsg()->AsString();
   std::cout << "Election message came from " << electId << "!" << std::endl;
 
+  if (!_leaderId.empty())
+  {
+    auto nextMsg = MessageFactory::CreateKnownLeaderMessage(_leaderId);
+    SendMsg(*nextMsg, msg->GetSenderId());
+    return;
+  }
+
   if (electId > GetNetworkId())
   {
     SendMsg(*msg->GetMsg(), GetNextId(GetNetworkId()));
   }
   else if (electId < GetNetworkId() && !_electionParticipant)
   {
-    auto msg = MessageFactory::CreateElectionMessage(GetNetworkId());
-    SendMsg(*msg, GetNextId(GetNetworkId()));
+    auto nextMsg = MessageFactory::CreateElectionMessage(GetNetworkId());
+    SendMsg(*nextMsg, GetNextId(GetNetworkId()));
   }
   else if (electId == GetNetworkId())
   {
@@ -91,8 +98,8 @@ void NetworkManager::OnElectionMessage(const std::shared_ptr<ReceivedMessage>& m
     _leader = true;
     std::cout << "Me " << _leaderId << " is leader!" << std::endl;
     _electionParticipant = false;
-    auto msg = MessageFactory::CreateElectedMessage(GetNetworkId());
-    SendMsg(*msg, GetNextId(GetNetworkId()));
+    auto nextMsg = MessageFactory::CreateElectedMessage(GetNetworkId());
+    SendMsg(*nextMsg, GetNextId(GetNetworkId()));
   }
   // TODO
 }

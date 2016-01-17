@@ -47,6 +47,7 @@ int main(int argc, const char* args[])
 #ifndef _WIN32
   signal(SIGPIPE, SIG_IGN);
 #endif // _WIN32
+  srand(time(nullptr));
   OnStart();
   GComputation = std::make_shared<Computation>();
   ReadJob();
@@ -57,9 +58,10 @@ int main(int argc, const char* args[])
   GNetworkManager->DiscoverAll();
   sleepMs(1000);
   //DEBUGVerbose = true;
-  //while (GNetworkManager->GetClientCount() < 1)
+  while (GNetworkManager->GetClientCount() < 1)
   {
-    std::cout << "Waiting for at least one client " << GNetworkManager->GetClientCount() << std::endl;
+    std::cout << "Waiting for at least 1 other clients, currently: " << GNetworkManager->GetClientCount() << std::endl;
+    sleepMs(500);
   }
   GComputation->StartComputation();
 

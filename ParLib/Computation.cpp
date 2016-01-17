@@ -135,6 +135,7 @@ void Computation::CheckAssignments()
 
   if (_currAssignment)
   {
+    std::cout << "Current assignments: " << std::endl;
     std::cout << "Me: " << GNetworkManager->GetNetworkId() << std::endl;
     _currAssignment->PrintAssignments();
   }
@@ -227,7 +228,20 @@ void Computation::CheckAssignments()
     std::cout << "Needs job: " << need << std::endl;
   }
 
-  std::cout << "Checking assignments." << std::endl;
+  // == Try synchronize corrupted clients ==
+  if ((rand() % 6) == 0)
+  {
+    auto msg = MessageFactory::CreateStackAssignmentMessage(*_currAssignment);
+    net->BroadcastMsg(*msg);
+  }
+
+  // == Send assignments to new clients ==
+
+  for (const auto& client : newClients)
+  {
+    auto msg = MessageFactory::CreateStackAssignmentMessage(*_currAssignment);
+    net->SendMsg(*msg, client);
+  }
 
   // == Terminate calculation when no jobs are left ==
 
@@ -301,13 +315,14 @@ void Computation::CheckAssignments()
 
 void Computation::ClearDisconnected()
 {
-  if (millis() - _lastAssignCheck < 50)
+  if (millis() - _lastAssignCheck < 150)
     return;
 
   _lastAssignCheck = millis();
 
   if (_currAssignment)
   {
+    std::cout << "Current assignments: " << std::endl;
     std::cout << "Me: " << GNetworkManager->GetNetworkId() << std::endl;
     _currAssignment->PrintAssignments();
   }
