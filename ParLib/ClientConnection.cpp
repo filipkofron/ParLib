@@ -39,7 +39,7 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
       conn->_lastTimeAlive = millis();
       GNetworkManager->OnMessage(std::make_shared<ReceivedMessage>(conn->GetNetworkId(), msg));
     }
-    Log << "millis() - conn->_lastTimeAlive: " << millis() - conn->_lastTimeAlive << std::endl;
+
     if (millis() - conn->_lastTimeAlive > CLIENT_CONNECTION_TIMEOUT_MS)
     {
       if (DEBUGVerbose) Log << "Socket timeout for " << conn->GetNetworkId() << " client: " << client << std::endl;

@@ -473,13 +473,13 @@ int TCPSocket::Send(const char* buffer, int length)
   while (sent != length)
   {
     int currSent = send(_socket, buffer + sent, length - sent, 0);
-    if (currSent >= 0)
+    if (currSent > 0)
     {
       sent += currSent;
     }
     else
     {
-      if (currSent < 0 || !IsOk())
+      if (currSent <= 0 || !IsOk())
       {
         _error = true;
         if (DEBUGVerbose) Log << "socket " << _socketId << " sent: " << -1 << std::endl;
@@ -498,13 +498,13 @@ int TCPSocket::Receive(char* buffer, int length)
   while (recvd != length)
   {
     int currRecvd = recv(_socket, buffer + recvd, length - recvd, 0);
-    if (currRecvd >= 0)
+    if (currRecvd > 0)
     {
       recvd += currRecvd;
     }
     else
     {
-      if (currRecvd < 0 || !IsOk())
+      if (currRecvd <= 0 || !IsOk())
       {
         _error = true;
         if (DEBUGVerbose) Log << "socket " << _socketId << " received: " << -1 << std::endl;
