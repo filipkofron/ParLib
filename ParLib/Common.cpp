@@ -189,7 +189,7 @@ std::ostream& WritePreLog(std::ostream& os)
   std::string id = "Unknown yet";
   if (net)
   {
-    net->GetNetworkId();
+    id = net->GetNetworkId();
   }
   os << "[" << id << "]: ";
   return os;
