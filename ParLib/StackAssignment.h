@@ -78,7 +78,7 @@ public:
   {
     for (auto& each : _assignments)
     {
-      std::cout << each.first << ": " << each.second.size() << std::endl;
+      Log << each.first << ": " << each.second.size() << std::endl;
     }
   }
 };

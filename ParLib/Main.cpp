@@ -35,10 +35,10 @@ void ReadJob()
   {
     FatalError("Cannot load the job file: '%s'!!!", path);
   }
-  std::cout << "Reading job from '" << path << "'." << std::endl;
+  Log << "Reading job from '" << path << "'." << std::endl;
   std::shared_ptr<Matrix> matrix = std::make_shared<Matrix>();
   matrix->fromStream(ifs);
-  std::cout << "Loaded matrix size: '" << matrix->getSize() << "'." << std::endl;
+  Log << "Loaded matrix size: '" << matrix->getSize() << "'." << std::endl;
   GComputation->SetMaximumCut(std::make_shared<MaximumCut>(matrix));
 }
 
@@ -60,7 +60,7 @@ int main(int argc, const char* args[])
   //DEBUGVerbose = true;
   while (GNetworkManager->GetClientCount() < 1)
   {
-    std::cout << "Waiting for at least 1 other clients, currently: " << GNetworkManager->GetClientCount() << std::endl;
+    Log << "Waiting for at least 1 other clients, currently: " << GNetworkManager->GetClientCount() << std::endl;
     sleepMs(500);
   }
   GComputation->StartComputation();
@@ -72,7 +72,7 @@ int main(int argc, const char* args[])
   GComputation->Terminate();
 
   GNetworkManager->Terminate();
-  std::cout << "Waiting for all threads to stop." << std::endl;
+  Log << "Waiting for all threads to stop." << std::endl;
   sleepMs(300);
   GNetworkManager = nullptr;
 

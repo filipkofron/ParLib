@@ -8,7 +8,7 @@ static std::vector<std::shared_ptr<ClientConnection> > UncleanableClients;
 void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool client)
 {
   conn->_socket->SetTimeout(30000);
-  std::cout << "Handshake started." << std::endl;
+  Log << "Handshake started." << std::endl;
   if (!Handshake(conn, client))
   {
     // TODO: Disconnect client.
@@ -21,11 +21,11 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
   conn->_socket->SetTimeout(CLIENT_CONNECTION_TIMEOUT_MS);
   if (!GNetworkManager->AddOrDiscardClient(conn, client))
   {
-    if (DEBUGVerbose) std::cout << "NOT connected with <" << conn->GetNetworkId() << "> client: " << client << std::endl;
+    if (DEBUGVerbose) Log << "NOT connected with <" << conn->GetNetworkId() << "> client: " << client << std::endl;
     GNetworkManager->RegisterFinishingClient(conn);
     return;
   }
-  std::cout << "Connected with <" << conn->GetNetworkId() << "> client: " << client << std::endl;
+  Log << "Connected with <" << conn->GetNetworkId() << "> client: " << client << std::endl;
   if (!GNetworkManager->GetLeaderId().empty())
   {
     auto msg = MessageFactory::CreateKnownLeaderMessage(GNetworkManager->GetLeaderId());
@@ -41,11 +41,11 @@ void ClientConnection::ReceiverLoop(std::shared_ptr<ClientConnection> conn, bool
     }
     if (millis() - conn->_lastTimeAlive > CLIENT_CONNECTION_TIMEOUT_MS)
     {
-      if (DEBUGVerbose) std::cout << "Socket timeout for " << conn->GetNetworkId() << " client: " << client << std::endl;
+      if (DEBUGVerbose) Log << "Socket timeout for " << conn->GetNetworkId() << " client: " << client << std::endl;
       break;
     }
   }
-  if (DEBUGVerbose) std::cout << "Socket failure with " << conn->GetNetworkId() << " client: " << client << std::endl;
+  if (DEBUGVerbose) Log << "Socket failure with " << conn->GetNetworkId() << " client: " << client << std::endl;
   // TODO: Disconnect client.
   auto net = GNetworkManager;
   if (net)

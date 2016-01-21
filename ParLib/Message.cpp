@@ -34,7 +34,7 @@ std::shared_ptr<Message> Message::Receive(TCPSocket& socket)
     }
     delete content;
   }
-  if (DEBUGVerbose) std::cout << "Failure to receive a message rc: " << rc << std::endl;
+  if (DEBUGVerbose) Err << "Failure to receive a message rc: " << rc << std::endl;
   delete header;
   return nullptr;
 }

@@ -1,8 +1,10 @@
+#include <ctime>
 #include <cstring>
 #include <cstdarg>
 #include <iostream>
 #include <sstream>
 #include <chrono>
+#include <iomanip>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -79,7 +81,7 @@ void OnStart()
   InitSockets();
 #endif // _WIN32
 
-  std::cout << "ParLib booting up." << std::endl;
+  Log << "ParLib booting up." << std::endl;
 }
 
 void OnEnd(bool waitForUserInput)
@@ -89,7 +91,7 @@ void OnEnd(bool waitForUserInput)
   DeinitSockets();
 #endif // _WIN32
 
-  std::cout << "Press any key to exit." << std::endl;
+  Log << "Press any key to exit." << std::endl;
   std::cin.get();
 }
 
@@ -104,7 +106,7 @@ void Info(const char* format, ...)
   vsnprintf(buffer, maxLen, format, args);
   va_end(args);
   buffer[maxLen] = '\0';
-  std::cerr << "Info: " << buffer << std::endl;
+  Log << "Info: " << buffer << std::endl;
   delete[] buffer;
 }
 
@@ -119,7 +121,7 @@ void Error(const char* format, ...)
   vsnprintf(buffer, maxLen, format, args);
   va_end(args);
   buffer[maxLen] = '\0';
-  std::cerr << "Error: " << buffer << std::endl;
+  Err << "Error: " << buffer << std::endl;
   delete[] buffer;
 }
 
@@ -171,4 +173,20 @@ int64_t millis()
     std::chrono::system_clock::now().time_since_epoch()
     );
   return ms.count();
+}
+
+std::ostream& WritePreLog(std::ostream& os)
+{
+  auto net = GNetworkManager;
+  using std::chrono::system_clock;
+  std::time_t tt = system_clock::to_time_t(system_clock::now());
+  struct std::tm* ptm = std::localtime(&tt);
+  os << "[" << std::put_time(ptm, "%c") << "]";
+  std::string id = "Unknown yet";
+  if (net)
+  {
+    net->GetNetworkId();
+  }
+  os << "[" << id << "]: ";
+  return os;
 }

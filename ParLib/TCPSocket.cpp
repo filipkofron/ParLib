@@ -148,15 +148,15 @@ void TCPSocket::TCPSocketWin32Client(const std::string addr, const std::string& 
       printf("ioctlsocket failed with error: %ld\n", iResult);
     }
 
-    fd_set Write, Err;
-    FD_ZERO(&Write);
-    FD_ZERO(&Err);
-    FD_SET(_socket, &Write);
-    FD_SET(_socket, &Err);
+    fd_set write, err;
+    FD_ZERO(&write);
+    FD_ZERO(&err);
+    FD_SET(_socket, &write);
+    FD_SET(_socket, &err);
 
     // check if the socket is ready
-    select(0, NULL, &Write, &Err, &_tv);
-    if (!FD_ISSET(_socket, &Write))
+    select(0, NULL, &write, &err, &_tv);
+    if (!FD_ISSET(_socket, &write))
     {
       closesocket(_socket);
       _socket = INVALID_SOCKET;
@@ -234,7 +234,7 @@ void TCPSocket::TCPSocketLinuxServer(const std::string& addr, int port)
   char ip[100];
   HostnameToIp(addr.c_str(), ip);
   unsigned int addrHost = ParseIPV4Addr(ip);
-  std::cout << "addrHost: " << addrHost << std::endl;
+  Log << "addrHost: " << addrHost << std::endl;
   listenAddr.sin_addr.s_addr = htonl(addrHost);
   listenAddr.sin_port = htons(port);
   rc = bind(_socket, (struct sockaddr *)&listenAddr, sizeof(listenAddr));
@@ -287,7 +287,7 @@ void TCPSocket::TCPSocketLinuxClient(const std::string addr, int port)
   connAddr.sin_family = AF_INET;
   char ip[100];
   HostnameToIp(addr.c_str(), ip);
-  // std::cout << "hostname: " << addr.c_str() << " ip: " << ip << " port: " << port<<  std::endl;
+  // Log << "hostname: " << addr.c_str() << " ip: " << ip << " port: " << port<<  std::endl;
   connAddr.sin_addr.s_addr = htonl(ParseIPV4Addr(ip));
   connAddr.sin_port = htons(port);
   // printf("connAddr.sin_addr.s_addr: %X", connAddr.sin_addr.s_addr);
@@ -482,12 +482,12 @@ int TCPSocket::Send(const char* buffer, int length)
       if (currSent < 0 || !IsOk())
       {
         _error = true;
-        if (DEBUGVerbose) std::cout << "socket " << _socketId << " sent: " << -1 << std::endl;
+        if (DEBUGVerbose) Log << "socket " << _socketId << " sent: " << -1 << std::endl;
         return -1;
       }
     }
   }
-  if (DEBUGVerbose) std::cout << "socket " << _socketId << " sent: " << sent << std::endl;
+  if (DEBUGVerbose) Log << "socket " << _socketId << " sent: " << sent << std::endl;
   return sent;
 }
 
@@ -507,12 +507,12 @@ int TCPSocket::Receive(char* buffer, int length)
       if (currRecvd < 0 || !IsOk())
       {
         _error = true;
-        if (DEBUGVerbose) std::cout << "socket " << _socketId << " received: " << -1 << std::endl;
+        if (DEBUGVerbose) Log << "socket " << _socketId << " received: " << -1 << std::endl;
         return -1;
       }
     }
   }
-  if (DEBUGVerbose) std::cout << "socket " << _socketId << " received: " << recvd << std::endl;
+  if (DEBUGVerbose) Log << "socket " << _socketId << " received: " << recvd << std::endl;
   return recvd;
 }
 

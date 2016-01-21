@@ -74,7 +74,7 @@ void NetworkManager::OnKeepAliveMessage(const std::shared_ptr<ReceivedMessage>& 
 void NetworkManager::OnElectionMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
   std::string electId = msg->GetMsg()->AsString();
-  std::cout << "Election message came from " << electId << "!" << std::endl;
+  Log << "Election message came from " << electId << "!" << std::endl;
 
   if (!_leaderId.empty())
   {
@@ -96,7 +96,7 @@ void NetworkManager::OnElectionMessage(const std::shared_ptr<ReceivedMessage>& m
   {
     _leaderId = GetNetworkId();
     _leader = true;
-    std::cout << "Me " << _leaderId << " is leader!" << std::endl;
+    Log << "Me " << _leaderId << " is leader!" << std::endl;
     _electionParticipant = false;
     auto nextMsg = MessageFactory::CreateElectedMessage(GetNetworkId());
     SendMsg(*nextMsg, GetNextId(GetNetworkId()));
@@ -107,11 +107,11 @@ void NetworkManager::OnElectionMessage(const std::shared_ptr<ReceivedMessage>& m
 void NetworkManager::OnElectedMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
   std::string electId = msg->GetMsg()->AsString();
-  std::cout << "Elected message came with " << electId << " from " << msg->GetSenderId() << std::endl;
+  Log << "Elected message came with " << electId << " from " << msg->GetSenderId() << std::endl;
 
   if (electId == GetNetworkId())
   {
-    std::cout << "Elected message came back to the origin " << electId << std::endl;
+    Log << "Elected message came back to the origin " << electId << std::endl;
     return;
   }
 
@@ -123,7 +123,7 @@ void NetworkManager::OnElectedMessage(const std::shared_ptr<ReceivedMessage>& ms
 void NetworkManager::OnKnownLeaderMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
   std::string electId = msg->GetMsg()->AsString();
-  std::cout << "Known leader message came with " << electId << " from " << msg->GetSenderId() << std::endl;
+  Log << "Known leader message came with " << electId << " from " << msg->GetSenderId() << std::endl;
 
   if (electId == GetNetworkId())
     return;
@@ -152,7 +152,7 @@ void NetworkManager::Step()
     {
       if (currTime - _started > 10000)
       {
-        std::cout << "No other host came up in 10 seconds, selecting myself as the leader." << std::endl;
+        Log << "No other host came up in 10 seconds, selecting myself as the leader." << std::endl;
         _leader = true;
         _leaderId = GetNetworkId();
       }
@@ -188,7 +188,7 @@ void NetworkManager::DiscoverAll()
 {
   sleepMs(1000);
   _discovered = false;
-  std::cout << "Discovering all nodes on the network " << _network << ". " << (1 << _maskBits) << " hosts will be scanned." << std::endl;
+  Log << "Discovering all nodes on the network " << _network << ". " << (1 << _maskBits) << " hosts will be scanned." << std::endl;
   int defaultPort = DEFAULT_PORT;
   int maxPort = defaultPort + 8;
   AddrSubnetIterator addrIterator(_network, _maskBits);
@@ -240,7 +240,7 @@ void NetworkManager::KeepAliveLoop()
     std::lock_guard<std::mutex> guard(_lock);
     for (auto& client : _clientConnections)
     {
-      if (DEBUGVerbose) std::cout << "Sending keep alive message to: " << client.first << std::endl;
+      if (DEBUGVerbose) Log << "Sending keep alive message to: " << client.first << std::endl;
       client.second->SendKeepAlive();
     }
   }
@@ -280,7 +280,7 @@ void NetworkManager::RegisterFinishingClient(std::shared_ptr<ClientConnection> c
 void NetworkManager::OnMessage(const std::shared_ptr<ReceivedMessage>& msg)
 {
   CleanFinishingClients();
-  if (DEBUGVerbose) std::cout << "Received message type: " << msg->GetMsg()->GetType() << std::endl;
+  if (DEBUGVerbose) Log << "Received message type: " << msg->GetMsg()->GetType() << std::endl;
   switch (msg->GetMsg()->GetType())
   {
   case MESSAGE_TYPE_KEEP_ALIVE:

@@ -104,7 +104,7 @@ void Matrix::fromStream(std::istream &is)
     }
   }
 #ifdef debug
-  std::cout << "Loaded matrix of side " << size << std::endl;
+  Log << "Loaded matrix of side " << size << std::endl;
 #endif
 
   /*for (uint32_t i = 0; i < size; i++)
@@ -122,12 +122,12 @@ int32_t Matrix::sum(std::vector<int32_t> &vertSet) const
   uint32_t mySum = 0;
   //uint32_t i = 0;
 #ifdef debug
-  std::cout << " computing set:";
+  Log << " computing set:";
   for (auto t : vertSet)
   {
-    std::cout << t << " ";
+    Log << t << " ";
   }
-  std::cout << std::endl;
+  Log << std::endl;
   std::cin.get();
 #endif
   int *vertTemp = new int[size];

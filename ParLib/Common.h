@@ -1,11 +1,17 @@
 #pragma once
 
-#include <cstdio>
-#include <cstdlib>
-
 #define DEFAULT_PORT 1337
 #include <vector>
 #include <memory>
+
+#include <cstdio>
+#include <cstdlib>
+
+#define Log WritePreLog(std::cout)
+#define Err WritePreLog(std::cerr)
+
+std::ostream& WritePreLog(std::ostream& os);
+
 #include "NetworkManager.h"
 #include "Computation.h"
 #include "MaximumCut.h"
@@ -58,3 +64,4 @@ uint32_t ParseIPV4Addr(const std::string& addrStr);
 void sleepMs(unsigned long milis);
 
 int64_t millis();
+

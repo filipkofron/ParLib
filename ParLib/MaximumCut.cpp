@@ -40,12 +40,12 @@ void MaximumCut::PopulateStates()
 bool MaximumCut::compute()
 {
 #ifdef DEBUG
-  std::cout << myID() << "Compute" << std::endl;
+  Log << myID() << "Compute" << std::endl;
 #endif
 
   if (_matrix->getSize() < 1)
   {
-    std::cerr << "ERROR: Matrix is empty!" << std::endl;
+    Err << "ERROR: Matrix is empty!" << std::endl;
     exit(1);
   }
 

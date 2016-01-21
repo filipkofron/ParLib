@@ -38,7 +38,7 @@ void Computation::ComputationLoop()
 
     ReadMessages();
 
-    if (DEBUGVerbose) std::cout << "Compute loop tick" << std::endl;
+    if (DEBUGVerbose) Log << "Compute loop tick" << std::endl;
   }
 }
 
@@ -72,7 +72,7 @@ void Computation::InitLeaderStep()
   auto net = GNetworkManager;
   if (!net)
     return;
-  std::cout << "InitLeaderStep()" << std::endl;
+  Log << "InitLeaderStep()" << std::endl;
   _maximumCut->PopulateStates();
   std::shared_ptr<StackAssignment> assign = std::make_shared<StackAssignment>();
   auto clients = GNetworkManager->GetClients();
@@ -103,11 +103,11 @@ void Computation::InitLeaderStep()
 
 void Computation::OnDivideWith(const std::string& with)
 {
-  std::cout << "Divide with: " << with << std::endl;
+  Log << "Divide with: " << with << std::endl;
   auto parStacks = GetParallelStacks(_maximumCut->getStates().getData(), 2);
   if (parStacks.size() != 2 || parStacks[0]->size() == 0)
   {
-    std::cout << "OnDivideWith: Too little work to do" << std::endl;
+    Log << "OnDivideWith: Too little work to do" << std::endl;
     return;
   }
   _maximumCut->getStates().assignData(parStacks[0]->getData());
@@ -135,8 +135,8 @@ void Computation::CheckAssignments()
 
   if (_currAssignment)
   {
-    std::cout << "Current assignments: " << std::endl;
-    std::cout << "Me: " << GNetworkManager->GetNetworkId() << std::endl;
+    Log << "Current assignments: " << std::endl;
+    Log << "Me: " << GNetworkManager->GetNetworkId() << std::endl;
     _currAssignment->PrintAssignments();
   }
 
@@ -205,27 +205,27 @@ void Computation::CheckAssignments()
 
   for (auto finished : finishedClients)
   {
-    std::cout << "Finished: " << finished << std::endl;
+    Log << "Finished: " << finished << std::endl;
   }
 
   for (auto newc : newClients)
   {
-    std::cout << "New: " << newc << std::endl;
+    Log << "New: " << newc << std::endl;
   }
 
   for (auto disc : disconnectedClients)
   {
-    std::cout << "Disconnected: " << disc << std::endl;
+    Log << "Disconnected: " << disc << std::endl;
   }
 
   for (auto known : knownClients)
   {
-    std::cout << "Known: " << known << std::endl;
+    Log << "Known: " << known << std::endl;
   }
 
   for (auto need : needJobClients)
   {
-    std::cout << "Needs job: " << need << std::endl;
+    Log << "Needs job: " << need << std::endl;
   }
 
   // == Try synchronize corrupted clients ==
@@ -322,8 +322,8 @@ void Computation::ClearDisconnected()
 
   if (_currAssignment)
   {
-    std::cout << "Current assignments: " << std::endl;
-    std::cout << "Me: " << GNetworkManager->GetNetworkId() << std::endl;
+    Log << "Current assignments: " << std::endl;
+    Log << "Me: " << GNetworkManager->GetNetworkId() << std::endl;
     _currAssignment->PrintAssignments();
   }
 
@@ -353,7 +353,7 @@ void Computation::ClearDisconnected()
 
 void Computation::LeaderStep()
 {
-  if (DEBUGVerbose) std::cout << "LeaderStep()" << std::endl;
+  if (DEBUGVerbose) Log << "LeaderStep()" << std::endl;
   switch (_state)
   {
   case State::Initial:
@@ -410,7 +410,7 @@ void Computation::ComputeStep()
 
 void Computation::OnAssignment(const std::shared_ptr<StackAssignment>& assign)
 {
-  std::cout << "Assignment came - contents " << assign->GetSize() << " clients" << std::endl;
+  Log << "Assignment came - contents " << assign->GetSize() << " clients" << std::endl;
 
   if (_currAssignment)
     _currAssignment->Update(assign);
@@ -429,7 +429,7 @@ void Computation::OnAssignment(const std::shared_ptr<StackAssignment>& assign)
     {
       _state = Waiting;
     }
-    std::cout << "Got new work size: " << _maximumCut->getStates().size() << std::endl;
+    Log << "Got new work size: " << _maximumCut->getStates().size() << std::endl;
   }
 
   // compare assignments
@@ -440,19 +440,19 @@ void Computation::OnAssignment(const std::shared_ptr<StackAssignment>& assign)
 
 void Computation::OnAssignmentFinished(int32_t best, const std::string& clientId)
 {
-  std::cout << "Announcing some max found by '" << clientId << "': " << best << std::endl;
+  Log << "Announcing some max found by '" << clientId << "': " << best << std::endl;
   DebugFile("[%s] Assignment finished from [%s] with [%i]", GNetworkManager->GetNetworkId().c_str(), clientId.c_str(), best);
   if (best > _bestFound)
   {
     _bestFound = best;
-    std::cout << "Best found by '" << clientId << "': " << best << std::endl;
+    Log << "Best found by '" << clientId << "': " << best << std::endl;
   }
   _currAssignment->GetAssignment(clientId).clear();
 }
 
 void Computation::OnTerminate()
 {
-  std::cout << "Termination request from leader, terminating this node, max: " << _bestFound << std::endl;
+  Log << "Termination request from leader, terminating this node, max: " << _bestFound << std::endl;
   _state = Finished;
 }
 
