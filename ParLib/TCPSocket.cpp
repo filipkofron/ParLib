@@ -323,15 +323,15 @@ void TCPSocket::TCPSocketLinuxClient(const std::string addr, int port)
     printf("ioctlsocket failed with error: %d\n", iResult);
   }
 
-  fd_set Write, Err;
-  FD_ZERO(&Write);
-  FD_ZERO(&Err);
-  FD_SET(_socket, &Write);
-  FD_SET(_socket, &Err);
+  fd_set write, err;
+  FD_ZERO(&write);
+  FD_ZERO(&err);
+  FD_SET(_socket, &write);
+  FD_SET(_socket, &err);
 
   // check if the socket is ready
-  select(0, NULL, &Write, &Err, &_tv);
-  if (!FD_ISSET(_socket, &Write))
+  select(0, NULL, &write, &err, &_tv);
+  if (!FD_ISSET(_socket, &write))
   {
     close(_socket);
     _socket = INVALID_SOCKET;

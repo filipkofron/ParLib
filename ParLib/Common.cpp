@@ -178,10 +178,14 @@ int64_t millis()
 std::ostream& WritePreLog(std::ostream& os)
 {
   auto net = GNetworkManager;
-  using std::chrono::system_clock;
+  /*using std::chrono::system_clock;
   std::time_t tt = system_clock::to_time_t(system_clock::now());
-  struct std::tm* ptm = std::localtime(&tt);
-  os << "[" << std::put_time(ptm, "%c") << "]";
+  struct std::tm* ptm = std::localtime(&tt);*/
+  time_t now = time(0);
+  char* dt = ctime(&now);
+  dt[strlen(dt) - 1] = '\0';
+  //os << "[" << std::put_time(ptm, "%c") << "]";
+  os << "[" << dt << "]";
   std::string id = "Unknown yet";
   if (net)
   {
